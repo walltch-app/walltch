@@ -1,6 +1,9 @@
+import { Play } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { getStreams } from "../../lib/api";
 import type { AddonStream } from "../../lib/bindings/AddonStream";
+import type { PlayerLocationState } from "../player/PlayerPage";
 
 const SKELETON_KEYS = ["a", "b", "c", "d"];
 
@@ -18,11 +21,14 @@ function StreamsSection({
 	contentType,
 	videoId,
 	label,
+	title,
 }: {
 	contentType: string;
 	videoId: string;
 	label?: string;
+	title?: string;
 }) {
+	const navigate = useNavigate();
 	const [streams, setStreams] = useState<AddonStream[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
@@ -57,16 +63,29 @@ function StreamsSection({
 			{streams && streams.length > 0 && (
 				<ul className="stream-list">
 					{streams.map((stream) => (
-						<li key={streamKey(stream)} className="stream-row">
-							<span className="stream-addon">{stream.addonName}</span>
-							<div className="stream-info">
-								{stream.name && (
-									<span className="stream-name">{stream.name}</span>
-								)}
-								<span className="stream-desc">
-									{stream.description ?? stream.title ?? "Stream"}
-								</span>
-							</div>
+						<li key={streamKey(stream)}>
+							<button
+								type="button"
+								className="stream-row"
+								onClick={() => {
+									const state: PlayerLocationState = {
+										stream,
+										title: [title, label].filter(Boolean).join(" — "),
+									};
+									navigate("/player", { state });
+								}}
+							>
+								<span className="stream-addon">{stream.addonName}</span>
+								<div className="stream-info">
+									{stream.name && (
+										<span className="stream-name">{stream.name}</span>
+									)}
+									<span className="stream-desc">
+										{stream.description ?? stream.title ?? "Stream"}
+									</span>
+								</div>
+								<Play className="stream-play" aria-hidden />
+							</button>
 						</li>
 					))}
 				</ul>

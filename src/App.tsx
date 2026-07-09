@@ -4,6 +4,7 @@ import AddonsPage from "./features/addons/AddonsPage";
 import DetailPage from "./features/detail/DetailPage";
 import DiscoverPage from "./features/discover/DiscoverPage";
 import LibraryPage from "./features/library/LibraryPage";
+import PlayerPage from "./features/player/PlayerPage";
 import SettingsPage from "./features/settings/SettingsPage";
 
 function App() {
@@ -17,6 +18,8 @@ function App() {
 					<Route path="detail/:type/:id" element={<DetailPage />} />
 					<Route path="settings" element={<SettingsPage />} />
 				</Route>
+				{/* Full-bleed, no sidebar while watching. */}
+				<Route path="player" element={<PlayerPage />} />
 			</Routes>
 		</BrowserRouter>
 	);

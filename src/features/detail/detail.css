@@ -255,10 +255,37 @@
 	display: flex;
 	align-items: flex-start;
 	gap: 14px;
+	width: 100%;
 	padding: 12px 14px;
 	background: var(--surface);
 	border: 1px solid var(--line);
 	border-radius: var(--radius);
+	color: var(--text);
+	font-family: var(--font-body);
+	text-align: left;
+	cursor: pointer;
+	transition:
+		border-color 120ms ease,
+		background-color 120ms ease;
+}
+
+.stream-row:hover {
+	border-color: var(--accent);
+	background: var(--surface-2);
+}
+
+.stream-play {
+	width: 18px;
+	height: 18px;
+	margin-left: auto;
+	align-self: center;
+	flex-shrink: 0;
+	color: var(--muted);
+	transition: color 120ms ease;
+}
+
+.stream-row:hover .stream-play {
+	color: var(--accent-2);
 }
 
 .stream-addon {

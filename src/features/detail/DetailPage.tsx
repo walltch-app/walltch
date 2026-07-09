@@ -169,6 +169,7 @@ function DetailPage() {
 								contentType={type}
 								videoId={selected.id}
 								label={`${episodeLabel(selected)} — ${selected.title ?? ""}`}
+								title={meta?.name}
 							/>
 						)}
 						{!selected && meta && (
@@ -178,7 +179,11 @@ function DetailPage() {
 				)}
 
 				{meta && !isSeries && (
-					<StreamsSection contentType={type} videoId={meta.id} />
+					<StreamsSection
+						contentType={type}
+						videoId={meta.id}
+						title={meta.name}
+					/>
 				)}
 			</div>
 		</div>

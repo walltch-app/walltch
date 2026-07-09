@@ -7,6 +7,8 @@ import type { CatalogDescriptor } from "./bindings/CatalogDescriptor";
 import type { InstalledAddon } from "./bindings/InstalledAddon";
 import type { MetaDetail } from "./bindings/MetaDetail";
 import type { MetaPreview } from "./bindings/MetaPreview";
+import type { ResolvedStream } from "./bindings/ResolvedStream";
+import type { StreamSource } from "./bindings/StreamSource";
 
 export type ExtraProps = [name: string, value: string][];
 
@@ -44,4 +46,9 @@ export function getStreams(
 	id: string,
 ): Promise<AddonStream[]> {
 	return invoke("get_streams", { contentType, id });
+}
+
+/** Streams carry extra display fields; the command only reads the source. */
+export function resolveStream(source: StreamSource): Promise<ResolvedStream> {
+	return invoke("resolve_stream", { source });
 }
