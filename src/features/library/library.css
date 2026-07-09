@@ -1,0 +1,107 @@
+.continue-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px;
+}
+
+.continue-card {
+	position: relative;
+	width: 148px;
+}
+
+.continue-link {
+	display: block;
+	width: 148px;
+}
+
+.continue-link img,
+.continue-link .poster-fallback {
+	display: block;
+	width: 148px;
+	height: 222px;
+	border-radius: 12px;
+	border: 1px solid var(--line);
+	background: var(--surface-2);
+	object-fit: cover;
+	transition: border-color 140ms ease;
+}
+
+.continue-link:hover img,
+.continue-link:hover .poster-fallback {
+	border-color: var(--accent);
+}
+
+.continue-link .poster-fallback {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-family: var(--font-display);
+	font-size: 2.2rem;
+	font-weight: 600;
+	color: var(--muted);
+}
+
+.continue-bar {
+	position: relative;
+	height: 4px;
+	margin: -8px 6px 0;
+	border-radius: 2px;
+	background: rgba(255, 255, 255, 0.22);
+	overflow: hidden;
+}
+
+.continue-bar > div {
+	height: 100%;
+	background: var(--gradient);
+	border-radius: 2px;
+}
+
+.continue-card .poster-name {
+	display: block;
+	margin-top: 10px;
+	font-size: 0.84rem;
+	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.continue-card .poster-year {
+	display: block;
+	color: var(--muted);
+	font-size: 0.75rem;
+}
+
+.continue-remove {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border: 0;
+	border-radius: 50%;
+	background: rgba(10, 13, 21, 0.75);
+	color: var(--muted);
+	cursor: pointer;
+	opacity: 0;
+	transition:
+		opacity 120ms ease,
+		color 120ms ease;
+}
+
+.continue-card:hover .continue-remove,
+.continue-remove:focus-visible {
+	opacity: 1;
+}
+
+.continue-remove:hover {
+	color: #ff7a7a;
+}
+
+.continue-remove svg {
+	width: 15px;
+	height: 15px;
+}

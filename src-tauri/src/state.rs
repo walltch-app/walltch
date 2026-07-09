@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::UNIX_EPOCH;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -7,11 +8,13 @@ use tokio::sync::RwLock;
 use walltch_core::addon::{
     AddonClient, AddonError, ExtraProp, Manifest, MetaDetail, MetaPreview, Stream,
 };
-use walltch_core::ports::{HttpClient, Storage, StorageError};
+use walltch_core::library::{ContinueWatching, WatchProgress};
+use walltch_core::ports::{Clock, HttpClient, Storage, StorageError};
 
-use crate::adapters::{FsStorage, ReqwestHttpClient};
+use crate::adapters::{FsStorage, ReqwestHttpClient, SystemClock};
 
 const ADDONS_KEY: &str = "addons.json";
+const LIBRARY_KEY: &str = "library.json";
 
 #[derive(Debug, Error)]
 pub enum AppError {
@@ -62,10 +65,26 @@ pub struct AddonStream {
     pub stream: Stream,
 }
 
+/// Fields the frontend reports while playing; the timestamp is added here.
+#[derive(Debug, Deserialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct ProgressUpdate {
+    pub meta_id: String,
+    pub video_id: String,
+    pub r#type: String,
+    pub name: String,
+    pub poster: Option<String>,
+    pub position_secs: f64,
+    pub duration_secs: f64,
+}
+
 pub struct AppState {
     http: Arc<dyn HttpClient>,
     storage: Arc<dyn Storage>,
+    clock: Arc<dyn Clock>,
     addons: RwLock<Vec<InstalledAddon>>,
+    library: RwLock<ContinueWatching>,
 }
 
 impl AppState {
@@ -73,27 +92,38 @@ impl AppState {
         Self::load(
             Arc::new(ReqwestHttpClient::new()),
             Arc::new(FsStorage::new(data_dir)),
+            Arc::new(SystemClock),
         )
         .await
+    }
+
+    async fn read_or_default<T: serde::de::DeserializeOwned + Default>(
+        storage: &dyn Storage,
+        key: &str,
+    ) -> Result<T, AppError> {
+        Ok(match storage.read(key).await? {
+            Some(bytes) => serde_json::from_slice(&bytes).unwrap_or_else(|e| {
+                // A corrupt state file shouldn't brick the app; start empty.
+                eprintln!("walltch: ignoring corrupt {key}: {e}");
+                T::default()
+            }),
+            None => T::default(),
+        })
     }
 
     pub async fn load(
         http: Arc<dyn HttpClient>,
         storage: Arc<dyn Storage>,
+        clock: Arc<dyn Clock>,
     ) -> Result<Self, AppError> {
-        let addons = match storage.read(ADDONS_KEY).await? {
-            Some(bytes) => serde_json::from_slice(&bytes).unwrap_or_else(|e| {
-                // A corrupt addons file shouldn't brick the app; start empty
-                // and let the user reinstall.
-                eprintln!("walltch: ignoring corrupt {ADDONS_KEY}: {e}");
-                Vec::new()
-            }),
-            None => Vec::new(),
-        };
+        let addons: Vec<InstalledAddon> = Self::read_or_default(&*storage, ADDONS_KEY).await?;
+        let library: ContinueWatching = Self::read_or_default(&*storage, LIBRARY_KEY).await?;
         Ok(Self {
             http,
             storage,
+            clock,
             addons: RwLock::new(addons),
+            library: RwLock::new(library),
         })
     }
 
@@ -197,6 +227,47 @@ impl AppState {
         })
     }
 
+    pub async fn save_progress(&self, update: ProgressUpdate) -> Result<(), AppError> {
+        let updated_at_ms = self
+            .clock
+            .now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+        let progress = WatchProgress {
+            meta_id: update.meta_id,
+            video_id: update.video_id,
+            r#type: update.r#type,
+            name: update.name,
+            poster: update.poster,
+            position_secs: update.position_secs,
+            duration_secs: update.duration_secs,
+            updated_at_ms,
+        };
+        let mut library = self.library.write().await;
+        library.record(progress);
+        self.persist_library(&library).await
+    }
+
+    pub async fn continue_watching(&self) -> Vec<WatchProgress> {
+        self.library.read().await.entries().to_vec()
+    }
+
+    pub async fn video_progress(&self, video_id: &str) -> Option<WatchProgress> {
+        self.library.read().await.find_video(video_id).cloned()
+    }
+
+    pub async fn remove_continue_watching(&self, meta_id: &str) -> Result<(), AppError> {
+        let mut library = self.library.write().await;
+        library.remove(meta_id);
+        self.persist_library(&library).await
+    }
+
+    async fn persist_library(&self, library: &ContinueWatching) -> Result<(), AppError> {
+        let bytes = serde_json::to_vec_pretty(library)?;
+        Ok(self.storage.write(LIBRARY_KEY, &bytes).await?)
+    }
+
     /// Query every addon that serves streams for this type/id concurrently
     /// and flatten the results. Addons that error are skipped — one dead
     /// addon shouldn't hide streams from the others.
@@ -284,6 +355,14 @@ mod tests {
         }
     }
 
+    struct FixedClock;
+
+    impl Clock for FixedClock {
+        fn now(&self) -> std::time::SystemTime {
+            UNIX_EPOCH + std::time::Duration::from_millis(1_700_000_000_000)
+        }
+    }
+
     const CINEMETA: &str = "https://cinemeta.example";
     const TORRENTIO: &str = "https://torrentio.example";
 
@@ -309,7 +388,9 @@ mod tests {
     async fn state_with(responses: Vec<(String, (u16, String))>) -> AppState {
         let http = Arc::new(FakeHttp(responses.into_iter().collect()));
         let storage = Arc::new(MemoryStorage::default());
-        AppState::load(http, storage).await.expect("load")
+        AppState::load(http, storage, Arc::new(FixedClock))
+            .await
+            .expect("load")
     }
 
     async fn install_both(state: &AppState) {
@@ -340,7 +421,7 @@ mod tests {
     async fn install_persists_and_survives_reload() {
         let http = Arc::new(FakeHttp(manifests().into_iter().collect()));
         let storage = Arc::new(MemoryStorage::default());
-        let state = AppState::load(http.clone(), storage.clone())
+        let state = AppState::load(http.clone(), storage.clone(), Arc::new(FixedClock))
             .await
             .expect("load");
         state
@@ -349,7 +430,9 @@ mod tests {
             .expect("install");
 
         // Same storage, fresh state — as if the app restarted.
-        let state = AppState::load(http, storage).await.expect("reload");
+        let state = AppState::load(http, storage, Arc::new(FixedClock))
+            .await
+            .expect("reload");
         let addons = state.list_addons().await;
         assert_eq!(addons.len(), 1);
         assert_eq!(addons[0].manifest.name, "Cinemeta");
@@ -411,6 +494,40 @@ mod tests {
             .await
             .expect_err("unsupported prefix");
         assert!(matches!(err, AppError::NoAddonFor { .. }));
+    }
+
+    #[tokio::test]
+    async fn progress_is_stamped_and_survives_reload() {
+        let http = Arc::new(FakeHttp(HashMap::new()));
+        let storage = Arc::new(MemoryStorage::default());
+        let state = AppState::load(http.clone(), storage.clone(), Arc::new(FixedClock))
+            .await
+            .expect("load");
+
+        state
+            .save_progress(ProgressUpdate {
+                meta_id: "tt1".into(),
+                video_id: "tt1:1:2".into(),
+                r#type: "series".into(),
+                name: "Some Show".into(),
+                poster: None,
+                position_secs: 421.0,
+                duration_secs: 2400.0,
+            })
+            .await
+            .expect("save");
+
+        let state = AppState::load(http, storage, Arc::new(FixedClock))
+            .await
+            .expect("reload");
+        let entries = state.continue_watching().await;
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].updated_at_ms, 1_700_000_000_000);
+        let found = state.video_progress("tt1:1:2").await.expect("progress");
+        assert_eq!(found.position_secs, 421.0);
+
+        state.remove_continue_watching("tt1").await.expect("remove");
+        assert!(state.continue_watching().await.is_empty());
     }
 
     #[tokio::test]

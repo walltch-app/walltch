@@ -25,6 +25,10 @@ pub fn run() {
             commands::get_meta,
             commands::get_streams,
             commands::resolve_stream,
+            commands::save_progress,
+            commands::list_continue_watching,
+            commands::get_video_progress,
+            commands::remove_continue_watching,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -4,9 +4,11 @@
 use tauri::State;
 use walltch_core::addon::{MetaDetail, MetaPreview, StreamSource};
 
+use walltch_core::library::WatchProgress;
+
 use crate::adapters::torrent::ResolvedStream;
 use crate::adapters::TorrentEngine;
-use crate::state::{AddonStream, AppState, CatalogDescriptor, InstalledAddon};
+use crate::state::{AddonStream, AppState, CatalogDescriptor, InstalledAddon, ProgressUpdate};
 
 #[tauri::command]
 pub async fn install_addon(
@@ -59,6 +61,43 @@ pub async fn get_meta(
 ) -> Result<MetaDetail, String> {
     state
         .get_meta(&content_type, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn save_progress(
+    state: State<'_, AppState>,
+    progress: ProgressUpdate,
+) -> Result<(), String> {
+    state
+        .save_progress(progress)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn list_continue_watching(
+    state: State<'_, AppState>,
+) -> Result<Vec<WatchProgress>, String> {
+    Ok(state.continue_watching().await)
+}
+
+#[tauri::command]
+pub async fn get_video_progress(
+    state: State<'_, AppState>,
+    video_id: String,
+) -> Result<Option<WatchProgress>, String> {
+    Ok(state.video_progress(&video_id).await)
+}
+
+#[tauri::command]
+pub async fn remove_continue_watching(
+    state: State<'_, AppState>,
+    meta_id: String,
+) -> Result<(), String> {
+    state
+        .remove_continue_watching(&meta_id)
         .await
         .map_err(|e| e.to_string())
 }

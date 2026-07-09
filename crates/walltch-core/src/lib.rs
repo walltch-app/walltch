@@ -4,4 +4,5 @@
 //! implemented by platform adapters (desktop today, mobile later).
 
 pub mod addon;
+pub mod library;
 pub mod ports;

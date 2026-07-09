@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { getStreams } from "../../lib/api";
 import type { AddonStream } from "../../lib/bindings/AddonStream";
-import type { PlayerLocationState } from "../player/PlayerPage";
+import type { PlayContext, PlayerLocationState } from "../player/PlayerPage";
 
 const SKELETON_KEYS = ["a", "b", "c", "d"];
 
@@ -22,11 +22,13 @@ function StreamsSection({
 	videoId,
 	label,
 	title,
+	context,
 }: {
 	contentType: string;
 	videoId: string;
 	label?: string;
 	title?: string;
+	context?: PlayContext;
 }) {
 	const navigate = useNavigate();
 	const [streams, setStreams] = useState<AddonStream[] | null>(null);
@@ -71,6 +73,7 @@ function StreamsSection({
 									const state: PlayerLocationState = {
 										stream,
 										title: [title, label].filter(Boolean).join(" — "),
+										context,
 									};
 									navigate("/player", { state });
 								}}

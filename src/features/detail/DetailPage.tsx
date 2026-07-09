@@ -164,12 +164,19 @@ function DetailPage() {
 								</li>
 							))}
 						</ul>
-						{selected && (
+						{selected && meta && (
 							<StreamsSection
 								contentType={type}
 								videoId={selected.id}
 								label={`${episodeLabel(selected)} — ${selected.title ?? ""}`}
-								title={meta?.name}
+								title={meta.name}
+								context={{
+									metaId: meta.id,
+									videoId: selected.id,
+									contentType: type,
+									name: meta.name,
+									poster: meta.poster,
+								}}
 							/>
 						)}
 						{!selected && meta && (
@@ -183,6 +190,13 @@ function DetailPage() {
 						contentType={type}
 						videoId={meta.id}
 						title={meta.name}
+						context={{
+							metaId: meta.id,
+							videoId: meta.id,
+							contentType: type,
+							name: meta.name,
+							poster: meta.poster,
+						}}
 					/>
 				)}
 			</div>

@@ -7,8 +7,10 @@ import type { CatalogDescriptor } from "./bindings/CatalogDescriptor";
 import type { InstalledAddon } from "./bindings/InstalledAddon";
 import type { MetaDetail } from "./bindings/MetaDetail";
 import type { MetaPreview } from "./bindings/MetaPreview";
+import type { ProgressUpdate } from "./bindings/ProgressUpdate";
 import type { ResolvedStream } from "./bindings/ResolvedStream";
 import type { StreamSource } from "./bindings/StreamSource";
+import type { WatchProgress } from "./bindings/WatchProgress";
 
 export type ExtraProps = [name: string, value: string][];
 
@@ -51,4 +53,22 @@ export function getStreams(
 /** Streams carry extra display fields; the command only reads the source. */
 export function resolveStream(source: StreamSource): Promise<ResolvedStream> {
 	return invoke("resolve_stream", { source });
+}
+
+export function saveProgress(progress: ProgressUpdate): Promise<void> {
+	return invoke("save_progress", { progress });
+}
+
+export function listContinueWatching(): Promise<WatchProgress[]> {
+	return invoke("list_continue_watching");
+}
+
+export function getVideoProgress(
+	videoId: string,
+): Promise<WatchProgress | null> {
+	return invoke("get_video_progress", { videoId });
+}
+
+export function removeContinueWatching(metaId: string): Promise<void> {
+	return invoke("remove_continue_watching", { metaId });
 }
