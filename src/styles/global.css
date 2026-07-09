@@ -42,6 +42,11 @@ a {
 	text-decoration: none;
 }
 
+input,
+textarea {
+	user-select: text;
+}
+
 :focus-visible {
 	outline: 2px solid var(--accent-2);
 	outline-offset: 2px;
