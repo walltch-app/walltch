@@ -5,12 +5,14 @@
 //! Parsing is deliberately lenient — unknown fields are ignored and most
 //! fields are optional — because community addons stray from the spec.
 
+pub mod client;
 pub mod manifest;
 pub mod meta;
 pub mod response;
 pub mod stream;
 pub mod subtitle;
 
+pub use client::{AddonClient, AddonError};
 pub use manifest::{
     ExtraProp, Manifest, ManifestBehaviorHints, ManifestCatalog, ManifestError, ResourceRef,
 };
