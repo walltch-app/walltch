@@ -11,7 +11,9 @@ pub mod response;
 pub mod stream;
 pub mod subtitle;
 
-pub use manifest::{ExtraProp, Manifest, ManifestBehaviorHints, ManifestCatalog, ResourceRef};
+pub use manifest::{
+    ExtraProp, Manifest, ManifestBehaviorHints, ManifestCatalog, ManifestError, ResourceRef,
+};
 pub use meta::{MetaBehaviorHints, MetaDetail, MetaPreview, Video};
 pub use response::{CatalogResponse, MetaResponse, StreamsResponse, SubtitlesResponse};
 pub use stream::{Stream, StreamBehaviorHints, StreamSource};

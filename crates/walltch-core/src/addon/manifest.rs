@@ -1,4 +1,17 @@
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum ManifestError {
+    #[error("manifest is not valid JSON: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("manifest field `{0}` is empty")]
+    EmptyField(&'static str),
+    #[error("manifest declares no resources and no catalogs, so the addon serves nothing")]
+    NothingServed,
+    #[error("catalog #{0} has an empty id or type")]
+    InvalidCatalog(usize),
+}
 
 /// An addon's self-description, served at `/manifest.json`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -25,6 +38,43 @@ pub struct Manifest {
     pub contact_email: Option<String>,
     #[serde(default)]
     pub behavior_hints: ManifestBehaviorHints,
+}
+
+impl Manifest {
+    /// Parse and validate a `manifest.json` body. This is the entry point
+    /// used at install time, so a broken addon is rejected up front instead
+    /// of failing halfway through a catalog query.
+    pub fn parse(json: &str) -> Result<Self, ManifestError> {
+        let manifest: Self = serde_json::from_str(json)?;
+        manifest.validate()?;
+        Ok(manifest)
+    }
+
+    /// Semantic checks on top of successful deserialization.
+    pub fn validate(&self) -> Result<(), ManifestError> {
+        let required = [
+            ("id", &self.id),
+            ("version", &self.version),
+            ("name", &self.name),
+        ];
+        for (field, value) in required {
+            if value.trim().is_empty() {
+                return Err(ManifestError::EmptyField(field));
+            }
+        }
+        if self.resources.is_empty() && self.catalogs.is_empty() {
+            return Err(ManifestError::NothingServed);
+        }
+        if self.resources.iter().any(|r| r.name().trim().is_empty()) {
+            return Err(ManifestError::EmptyField("resources[].name"));
+        }
+        for (index, catalog) in self.catalogs.iter().enumerate() {
+            if catalog.id.trim().is_empty() || catalog.r#type.trim().is_empty() {
+                return Err(ManifestError::InvalidCatalog(index));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// A resource the addon provides. The protocol allows either a bare name
@@ -138,5 +188,81 @@ mod tests {
         assert_eq!(manifest.resources[0].name(), "stream");
         assert!(manifest.behavior_hints.p2p);
         assert!(manifest.catalogs.is_empty());
+    }
+
+    fn minimal_manifest() -> Manifest {
+        Manifest::parse(
+            r#"{
+                "id": "org.example",
+                "version": "1.0.0",
+                "name": "Example",
+                "types": ["movie"],
+                "resources": ["stream"]
+            }"#,
+        )
+        .expect("minimal manifest should be valid")
+    }
+
+    #[test]
+    fn parse_accepts_a_minimal_valid_manifest() {
+        let manifest = minimal_manifest();
+        assert_eq!(manifest.id, "org.example");
+    }
+
+    #[test]
+    fn parse_rejects_invalid_json() {
+        let result = Manifest::parse("{not json");
+        assert!(matches!(result, Err(ManifestError::Json(_))));
+    }
+
+    #[test]
+    fn validate_rejects_blank_required_fields() {
+        let mut manifest = minimal_manifest();
+        manifest.id = "   ".into();
+        assert!(matches!(
+            manifest.validate(),
+            Err(ManifestError::EmptyField("id"))
+        ));
+
+        let mut manifest = minimal_manifest();
+        manifest.version = String::new();
+        assert!(matches!(
+            manifest.validate(),
+            Err(ManifestError::EmptyField("version"))
+        ));
+    }
+
+    #[test]
+    fn validate_rejects_addon_that_serves_nothing() {
+        let mut manifest = minimal_manifest();
+        manifest.resources.clear();
+        assert!(matches!(
+            manifest.validate(),
+            Err(ManifestError::NothingServed)
+        ));
+
+        // ...but catalogs alone are enough to be useful.
+        manifest.catalogs.push(ManifestCatalog {
+            id: "top".into(),
+            r#type: "movie".into(),
+            name: None,
+            extra: Vec::new(),
+        });
+        assert!(manifest.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_catalog_without_id_or_type() {
+        let mut manifest = minimal_manifest();
+        manifest.catalogs.push(ManifestCatalog {
+            id: "top".into(),
+            r#type: String::new(),
+            name: None,
+            extra: Vec::new(),
+        });
+        assert!(matches!(
+            manifest.validate(),
+            Err(ManifestError::InvalidCatalog(0))
+        ));
     }
 }
