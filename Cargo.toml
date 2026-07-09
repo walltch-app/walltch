@@ -6,3 +6,11 @@ members = ["crates/walltch-core", "src-tauri"]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+
+[workspace.lints.rust]
+unsafe_code = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"
+dbg_macro = "warn"
+todo = "warn"
