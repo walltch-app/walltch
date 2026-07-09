@@ -1,11 +1,22 @@
-import "./App.css";
+import { BrowserRouter, Route, Routes } from "react-router";
+import Layout from "./app/Layout";
+import AddonsPage from "./features/addons/AddonsPage";
+import DiscoverPage from "./features/discover/DiscoverPage";
+import LibraryPage from "./features/library/LibraryPage";
+import SettingsPage from "./features/settings/SettingsPage";
 
 function App() {
 	return (
-		<main className="container">
-			<h1>Walltch</h1>
-			<p>Watch it all.</p>
-		</main>
+		<BrowserRouter>
+			<Routes>
+				<Route element={<Layout />}>
+					<Route index element={<DiscoverPage />} />
+					<Route path="library" element={<LibraryPage />} />
+					<Route path="addons" element={<AddonsPage />} />
+					<Route path="settings" element={<SettingsPage />} />
+				</Route>
+			</Routes>
+		</BrowserRouter>
 	);
 }
 

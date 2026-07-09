@@ -1,0 +1,246 @@
+/* Theme tokens. Everything color-related lives here so a future
+   user-configurable theme only has to swap this block. */
+:root {
+	--bg: #0a0d15;
+	--surface: #10141f;
+	--surface-2: #161c2a;
+	--line: rgba(148, 163, 198, 0.14);
+	--text: #edf0f8;
+	--muted: #8f97ac;
+	--accent: #2f5cff;
+	--accent-2: #1cb8f0;
+	--gradient: linear-gradient(135deg, var(--accent) 20%, var(--accent-2));
+	--radius: 10px;
+	--font-display: "Outfit Variable", system-ui, sans-serif;
+	--font-body: "Inter Variable", system-ui, sans-serif;
+}
+
+* {
+	margin: 0;
+	box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+	height: 100%;
+}
+
+body {
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font-body);
+	font-size: 15px;
+	line-height: 1.55;
+	-webkit-font-smoothing: antialiased;
+	overflow: hidden;
+	user-select: none;
+}
+
+a {
+	color: inherit;
+	text-decoration: none;
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent-2);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar {
+	width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--surface-2);
+	border-radius: 5px;
+	border: 2px solid var(--bg);
+}
+
+/* ---- App shell ---- */
+
+.shell {
+	display: flex;
+	height: 100%;
+}
+
+.sidebar {
+	display: flex;
+	flex-direction: column;
+	width: 224px;
+	flex-shrink: 0;
+	padding: 20px 12px;
+	background: var(--surface);
+	border-right: 1px solid var(--line);
+}
+
+.brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 4px 10px 22px;
+}
+
+.brand img {
+	width: 34px;
+	height: 34px;
+	object-fit: contain;
+}
+
+.brand span {
+	font-family: var(--font-display);
+	font-size: 1.25rem;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+}
+
+.sidebar nav {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.sidebar .spacer {
+	flex: 1;
+}
+
+.nav-link {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 9px 12px;
+	border-radius: var(--radius);
+	color: var(--muted);
+	font-weight: 500;
+	transition:
+		color 120ms ease,
+		background-color 120ms ease;
+}
+
+/* The play-triangle from the logo marks where you are. */
+.nav-link::before {
+	content: "";
+	width: 7px;
+	height: 9px;
+	flex-shrink: 0;
+	clip-path: polygon(0 0, 100% 50%, 0 100%);
+	background: var(--gradient);
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.nav-link:hover {
+	color: var(--text);
+	background: var(--surface-2);
+}
+
+.nav-link.active {
+	color: var(--text);
+	background: var(--surface-2);
+}
+
+.nav-link.active::before {
+	opacity: 1;
+}
+
+.nav-link svg {
+	width: 18px;
+	height: 18px;
+}
+
+.content {
+	position: relative;
+	flex: 1;
+	overflow-y: auto;
+}
+
+/* Faint ambient wash in the logo's colors, so the canvas isn't a flat void
+   before posters bring their own color. */
+.content::before {
+	content: "";
+	position: fixed;
+	inset: 0 0 auto;
+	height: 320px;
+	pointer-events: none;
+	background:
+		radial-gradient(
+			560px 300px at 28% -12%,
+			rgba(47, 92, 255, 0.16),
+			transparent 70%
+		),
+		radial-gradient(
+			520px 280px at 72% -16%,
+			rgba(28, 184, 240, 0.1),
+			transparent 70%
+		);
+}
+
+.page {
+	position: relative;
+	max-width: 1400px;
+	padding: 36px 40px 48px;
+}
+
+.page-title {
+	font-family: var(--font-display);
+	font-size: 1.65rem;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+	margin-top: 4px;
+	color: var(--muted);
+	font-size: 0.95rem;
+}
+
+/* ---- Shared bits ---- */
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 9px 18px;
+	border: 0;
+	border-radius: var(--radius);
+	background: var(--gradient);
+	color: #fff;
+	font-family: var(--font-body);
+	font-size: 0.9rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: filter 120ms ease;
+}
+
+.btn:hover {
+	filter: brightness(1.12);
+}
+
+.empty {
+	margin-top: 40px;
+	padding: 56px 32px;
+	border: 1px dashed var(--line);
+	border-radius: 14px;
+	text-align: center;
+}
+
+.empty h2 {
+	font-family: var(--font-display);
+	font-size: 1.15rem;
+	font-weight: 600;
+}
+
+.empty p {
+	margin: 6px 0 20px;
+	color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* {
+		/* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every transition shorthand */
+		transition: none !important;
+		/* biome-ignore lint/complexity/noImportantStyles: same for animations */
+		animation: none !important;
+	}
+}
