@@ -2,8 +2,10 @@
 //! walltch-core; errors cross the bridge as display strings.
 
 use tauri::State;
-use walltch_core::addon::{MetaDetail, MetaPreview};
+use walltch_core::addon::{MetaDetail, MetaPreview, StreamSource};
 
+use crate::adapters::torrent::ResolvedStream;
+use crate::adapters::TorrentEngine;
 use crate::state::{AddonStream, AppState, CatalogDescriptor, InstalledAddon};
 
 #[tauri::command]
@@ -59,6 +61,33 @@ pub async fn get_meta(
         .get_meta(&content_type, &id)
         .await
         .map_err(|e| e.to_string())
+}
+
+/// Turn a stream source into something the player can open. Torrents spin
+/// up the local streaming engine; plain URLs pass through untouched.
+#[tauri::command]
+pub async fn resolve_stream(
+    engine: State<'_, TorrentEngine>,
+    source: StreamSource,
+) -> Result<ResolvedStream, String> {
+    match source {
+        StreamSource::Url { url } => Ok(ResolvedStream {
+            play_url: url,
+            file_name: None,
+        }),
+        StreamSource::Torrent {
+            info_hash,
+            file_idx,
+            sources,
+        } => engine
+            .stream_torrent(&info_hash, file_idx, &sources)
+            .await
+            .map_err(|e| format!("{e:#}")),
+        StreamSource::YouTube { .. } => Err("YouTube streams aren't supported yet.".to_owned()),
+        StreamSource::External { .. } => {
+            Err("This stream only plays on an external site.".to_owned())
+        }
+    }
 }
 
 #[tauri::command]

@@ -10,8 +10,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
-            let state = tauri::async_runtime::block_on(state::AppState::load_default(data_dir))?;
+            let state =
+                tauri::async_runtime::block_on(state::AppState::load_default(data_dir.clone()))?;
             app.manage(state);
+            app.manage(adapters::TorrentEngine::new(data_dir.join("torrents")));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -22,6 +24,7 @@ pub fn run() {
             commands::get_catalog,
             commands::get_meta,
             commands::get_streams,
+            commands::resolve_stream,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

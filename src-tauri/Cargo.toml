@@ -30,6 +30,11 @@ reqwest = "0.12"
 thiserror = "2"
 tokio = { version = "1", features = ["fs"] }
 ts-rs = { version = "12", features = ["serde-compat"] }
+# tracing-subscriber-utils is required by http-api's logging handler;
+# without it librqbit 8.1 doesn't compile.
+librqbit = { version = "8", features = ["http-api", "tracing-subscriber-utils"] }
+anyhow = "1.0.103"
+percent-encoding = "2"
 
 [dev-dependencies]
 tempfile = "3"
