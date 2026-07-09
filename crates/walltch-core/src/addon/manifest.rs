@@ -75,6 +75,37 @@ impl Manifest {
         }
         Ok(())
     }
+
+    /// Whether this addon claims to serve `resource` (e.g. "meta", "stream")
+    /// for the given content type and meta id. Scoped resource entries
+    /// override the manifest-level `types`/`idPrefixes`; absent prefix lists
+    /// mean "no restriction".
+    pub fn supports(&self, resource: &str, r#type: &str, id: &str) -> bool {
+        fn prefix_matches(prefixes: Option<&Vec<String>>, id: &str) -> bool {
+            prefixes.is_none_or(|p| p.iter().any(|prefix| id.starts_with(prefix)))
+        }
+
+        self.resources.iter().any(|entry| match entry {
+            ResourceRef::Name(name) => {
+                name == resource
+                    && self.types.iter().any(|t| t == r#type)
+                    && prefix_matches(self.id_prefixes.as_ref(), id)
+            }
+            ResourceRef::Scoped {
+                name,
+                types,
+                id_prefixes,
+            } => {
+                name == resource
+                    && types
+                        .as_ref()
+                        .unwrap_or(&self.types)
+                        .iter()
+                        .any(|t| t == r#type)
+                    && prefix_matches(id_prefixes.as_ref().or(self.id_prefixes.as_ref()), id)
+            }
+        })
+    }
 }
 
 /// A resource the addon provides. The protocol allows either a bare name
@@ -249,6 +280,33 @@ mod tests {
             extra: Vec::new(),
         });
         assert!(manifest.validate().is_ok());
+    }
+
+    #[test]
+    fn supports_respects_types_and_id_prefixes() {
+        let manifest = Manifest::parse(
+            r#"{
+                "id": "org.example",
+                "version": "1.0.0",
+                "name": "Example",
+                "types": ["movie", "series"],
+                "idPrefixes": ["tt"],
+                "resources": [
+                    "meta",
+                    {"name": "stream", "types": ["movie"], "idPrefixes": ["tt", "kitsu"]}
+                ]
+            }"#,
+        )
+        .expect("valid manifest");
+
+        assert!(manifest.supports("meta", "series", "tt0903747"));
+        assert!(!manifest.supports("meta", "channel", "tt0903747"));
+        assert!(!manifest.supports("meta", "movie", "yt:abc"));
+
+        // The scoped stream entry narrows types but widens prefixes.
+        assert!(manifest.supports("stream", "movie", "kitsu:1"));
+        assert!(!manifest.supports("stream", "series", "tt0903747"));
+        assert!(!manifest.supports("subtitles", "movie", "tt1"));
     }
 
     #[test]

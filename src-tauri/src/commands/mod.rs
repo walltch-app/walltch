@@ -1,0 +1,74 @@
+//! Tauri invoke handlers. Thin wrappers: real logic lives in AppState and
+//! walltch-core; errors cross the bridge as display strings.
+
+use tauri::State;
+use walltch_core::addon::{MetaDetail, MetaPreview};
+
+use crate::state::{AddonStream, AppState, CatalogDescriptor, InstalledAddon};
+
+#[tauri::command]
+pub async fn install_addon(
+    state: State<'_, AppState>,
+    url: String,
+) -> Result<InstalledAddon, String> {
+    state.install_addon(&url).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn uninstall_addon(
+    state: State<'_, AppState>,
+    transport_url: String,
+) -> Result<(), String> {
+    state
+        .uninstall_addon(&transport_url)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn list_addons(state: State<'_, AppState>) -> Result<Vec<InstalledAddon>, String> {
+    Ok(state.list_addons().await)
+}
+
+#[tauri::command]
+pub async fn list_catalogs(state: State<'_, AppState>) -> Result<Vec<CatalogDescriptor>, String> {
+    Ok(state.list_catalogs().await)
+}
+
+#[tauri::command]
+pub async fn get_catalog(
+    state: State<'_, AppState>,
+    transport_url: String,
+    content_type: String,
+    id: String,
+    extra: Vec<(String, String)>,
+) -> Result<Vec<MetaPreview>, String> {
+    state
+        .get_catalog(&transport_url, &content_type, &id, &extra)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_meta(
+    state: State<'_, AppState>,
+    content_type: String,
+    id: String,
+) -> Result<MetaDetail, String> {
+    state
+        .get_meta(&content_type, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_streams(
+    state: State<'_, AppState>,
+    content_type: String,
+    id: String,
+) -> Result<Vec<AddonStream>, String> {
+    state
+        .get_streams(&content_type, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
