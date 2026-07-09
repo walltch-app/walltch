@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 /// A subtitle track offered by an addon or attached to a stream.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct Subtitle {
     #[serde(default)]

@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use super::subtitle::Subtitle;
 
 /// One playable option for a video, as served by a `/stream/...` resource.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct Stream {
     #[serde(flatten)]
@@ -31,7 +32,8 @@ impl Stream {
 
 /// Where the stream actually comes from. Exactly one of these shapes is
 /// present in the JSON; `untagged` picks the first that fits.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(untagged)]
 pub enum StreamSource {
     Url {
@@ -56,7 +58,8 @@ pub enum StreamSource {
     },
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct StreamBehaviorHints {
     /// True when the webview `<video>` element likely can't play this

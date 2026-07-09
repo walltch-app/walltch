@@ -14,7 +14,8 @@ pub enum ManifestError {
 }
 
 /// An addon's self-description, served at `/manifest.json`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
     pub id: String,
@@ -110,7 +111,8 @@ impl Manifest {
 
 /// A resource the addon provides. The protocol allows either a bare name
 /// ("stream") or an object that scopes it to certain types/id prefixes.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(untagged)]
 pub enum ResourceRef {
     Name(String),
@@ -134,7 +136,8 @@ impl ResourceRef {
 }
 
 /// A catalog entry announced in the manifest.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct ManifestCatalog {
     pub id: String,
@@ -146,7 +149,8 @@ pub struct ManifestCatalog {
     pub extra: Vec<ExtraProp>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtraProp {
     pub name: String,
@@ -158,7 +162,8 @@ pub struct ExtraProp {
     pub options_limit: Option<u32>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct ManifestBehaviorHints {
     #[serde(default)]

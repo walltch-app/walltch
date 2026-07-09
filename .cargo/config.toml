@@ -1,0 +1,4 @@
+# ts-rs writes the generated TypeScript bindings here (relative to the
+# workspace root) whenever `cargo test` runs the export tests.
+[env]
+TS_RS_EXPORT_DIR = { value = "src/lib/bindings", relative = true }

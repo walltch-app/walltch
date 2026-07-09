@@ -31,7 +31,8 @@ pub enum AppError {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct InstalledAddon {
     pub transport_url: String,
@@ -39,7 +40,8 @@ pub struct InstalledAddon {
 }
 
 /// One catalog from one installed addon, as shown on the discover board.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogDescriptor {
     pub transport_url: String,
@@ -51,7 +53,8 @@ pub struct CatalogDescriptor {
 }
 
 /// A stream annotated with which addon offered it.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct AddonStream {
     pub addon_name: String,

@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use super::stream::Stream;
 
 /// A lightweight meta item as returned inside catalogs.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaPreview {
     pub id: String,
@@ -30,7 +31,8 @@ pub struct MetaPreview {
 }
 
 /// The full meta object served by a `/meta/...` resource.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaDetail {
     pub id: String,
@@ -71,7 +73,8 @@ pub struct MetaDetail {
     pub behavior_hints: MetaBehaviorHints,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct Video {
     pub id: String,
@@ -93,7 +96,8 @@ pub struct Video {
     pub streams: Option<Vec<Stream>>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaBehaviorHints {
     #[serde(default)]
