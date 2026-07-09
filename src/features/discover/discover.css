@@ -1,0 +1,111 @@
+.catalog-row {
+	margin-top: 36px;
+}
+
+.catalog-row header {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin-bottom: 14px;
+}
+
+.catalog-row h2 {
+	font-family: var(--font-display);
+	font-size: 1.15rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	text-transform: capitalize;
+}
+
+.row-meta {
+	color: var(--muted);
+	font-size: 0.8rem;
+}
+
+.row-note {
+	color: var(--muted);
+	font-size: 0.875rem;
+}
+
+.poster-strip {
+	display: flex;
+	gap: 14px;
+	overflow-x: auto;
+	padding: 4px 4px 10px;
+	margin: -4px -4px 0;
+}
+
+.poster-strip::-webkit-scrollbar {
+	height: 8px;
+}
+
+.poster {
+	display: block;
+	width: 148px;
+	flex-shrink: 0;
+}
+
+.poster img,
+.poster-fallback {
+	display: block;
+	width: 148px;
+	height: 222px;
+	border-radius: 12px;
+	border: 1px solid var(--line);
+	background: var(--surface-2);
+	object-fit: cover;
+	transition:
+		transform 140ms ease,
+		border-color 140ms ease;
+}
+
+.poster:hover img,
+.poster:hover .poster-fallback {
+	transform: translateY(-3px);
+	border-color: var(--accent);
+}
+
+.poster-fallback {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-family: var(--font-display);
+	font-size: 2.2rem;
+	font-weight: 600;
+	color: var(--muted);
+}
+
+.poster-name {
+	display: block;
+	margin-top: 8px;
+	font-size: 0.84rem;
+	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.poster-year {
+	display: block;
+	color: var(--muted);
+	font-size: 0.75rem;
+}
+
+.poster-skeleton {
+	width: 148px;
+	height: 222px;
+	flex-shrink: 0;
+	border-radius: 12px;
+	background: var(--surface-2);
+	animation: poster-pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes poster-pulse {
+	0%,
+	100% {
+		opacity: 0.45;
+	}
+	50% {
+		opacity: 0.9;
+	}
+}
