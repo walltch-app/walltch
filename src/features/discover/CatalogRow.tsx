@@ -51,22 +51,47 @@ export function PosterStrip({ children }: { children: React.ReactNode }) {
 	}, [updateArrows]);
 
 	// Vertical wheel scrolls the strip horizontally while it has room; once
-	// the strip is at its end the page scrolls normally again.
+	// the strip is at its end the page scrolls normally again. Wheel ticks
+	// move a target and an rAF loop eases toward it, because stepping
+	// scrollLeft directly feels like a ratchet.
 	useEffect(() => {
 		const el = stripRef.current;
 		if (!el) return;
+		let target = el.scrollLeft;
+		let frame = 0;
+
+		const settle = () => {
+			const diff = target - el.scrollLeft;
+			if (Math.abs(diff) < 0.6) {
+				el.scrollLeft = target;
+				frame = 0;
+				return;
+			}
+			el.scrollLeft += diff * 0.16;
+			frame = requestAnimationFrame(settle);
+		};
+
 		const onWheel = (event: WheelEvent) => {
 			if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+			const max = el.scrollWidth - el.clientWidth;
+			if (max <= 0) return;
 			const atStart = el.scrollLeft <= 0 && event.deltaY < 0;
-			const atEnd =
-				el.scrollLeft + el.clientWidth >= el.scrollWidth - 1 &&
-				event.deltaY > 0;
-			if (atStart || atEnd) return;
+			const atEnd = el.scrollLeft >= max - 1 && event.deltaY > 0;
+			if (atStart || atEnd) {
+				target = el.scrollLeft;
+				return;
+			}
 			event.preventDefault();
-			el.scrollLeft += event.deltaY;
+			const from = frame ? target : el.scrollLeft;
+			target = Math.max(0, Math.min(max, from + event.deltaY * 2.2));
+			if (!frame) frame = requestAnimationFrame(settle);
 		};
+
 		el.addEventListener("wheel", onWheel, { passive: false });
-		return () => el.removeEventListener("wheel", onWheel);
+		return () => {
+			el.removeEventListener("wheel", onWheel);
+			if (frame) cancelAnimationFrame(frame);
+		};
 	}, []);
 
 	const nudge = (direction: -1 | 1) => {
