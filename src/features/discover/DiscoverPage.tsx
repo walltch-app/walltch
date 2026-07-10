@@ -6,7 +6,7 @@ import SearchResults from "../search/SearchResults";
 import CatalogRow from "./CatalogRow";
 import ContinueRow from "./ContinueRow";
 import FeaturedBillboard from "./FeaturedBillboard";
-import TrendingRail from "./TrendingRail";
+import FriendRail from "./FriendRail";
 import "./discover.css";
 
 function DiscoverPage() {
@@ -72,7 +72,7 @@ function DiscoverPage() {
 							/>
 						))}
 					</div>
-					<TrendingRail catalogs={catalogs} />
+					<FriendRail />
 				</div>
 			)}
 		</div>
