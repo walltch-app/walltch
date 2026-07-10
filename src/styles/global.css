@@ -1,9 +1,10 @@
 /* Theme tokens. Everything color-related lives here so a future
    user-configurable theme only has to swap this block. */
 :root {
-	/* Accents sampled straight from the logo's gradient. */
-	--accent: #0353f2;
-	--accent-2: #09a2fb;
+	/* Default accent: the mock's pink-to-peach. The logo blue and others
+	   stay one click away in Settings. */
+	--accent: #d0588a;
+	--accent-2: #f7a572;
 	/* Near-black neutral bases with a whisper of accent, so the canvas is
 	   deep like the mock but still carries the brand blue. */
 	--bg-deep: color-mix(in srgb, var(--accent) 3%, #0a0a0f);

@@ -105,7 +105,7 @@ impl TorrentEngine {
                 })
             })
             .collect();
-        list.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes));
+        list.sort_by_key(|entry| std::cmp::Reverse(entry.size_bytes));
         list
     }
 

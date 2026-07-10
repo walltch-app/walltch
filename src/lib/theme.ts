@@ -2,6 +2,12 @@
 // tokens move, which is exactly what the CSS was built around.
 
 export const ACCENTS = {
+	// Sampled from the design mock's pink-to-peach gradient.
+	sunset: {
+		name: "Sunset",
+		accent: "#d0588a",
+		accent2: "#f7a572",
+	},
 	// Sampled from the logo mark itself.
 	"walltch-blue": {
 		name: "Walltch Blue",
@@ -17,7 +23,7 @@ export const ACCENTS = {
 export type AccentId = keyof typeof ACCENTS;
 
 export function applyAccent(id: string) {
-	const preset = ACCENTS[id as AccentId] ?? ACCENTS["walltch-blue"];
+	const preset = ACCENTS[id as AccentId] ?? ACCENTS.sunset;
 	const root = document.documentElement.style;
 	root.setProperty("--accent", preset.accent);
 	root.setProperty("--accent-2", preset.accent2);

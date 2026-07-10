@@ -122,7 +122,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            accent: "walltch-blue".to_owned(),
+            accent: "sunset".to_owned(),
             use_mpv: true,
             hardware_decoding: true,
             subtitle_scale: 1.0,
@@ -682,7 +682,7 @@ mod tests {
             .await
             .expect("load");
 
-        assert_eq!(state.settings().await.accent, "walltch-blue");
+        assert_eq!(state.settings().await.accent, "sunset");
         let mut settings = state.settings().await;
         settings.accent = "emerald".to_owned();
         settings.use_mpv = false;
