@@ -24,22 +24,22 @@ function DownloadsPage() {
 		refresh();
 	}, [refresh]);
 
-	const total = entries?.reduce((sum, e) => sum + e.sizeBytes, 0) ?? 0;
+	const total = entries?.reduce((sum, e) => sum + Number(e.sizeBytes), 0) ?? 0;
 
 	return (
 		<div className="page">
-			<h1 className="page-title">İndirilenler</h1>
+			<h1 className="page-title">Downloads</h1>
 			<p className="page-subtitle">
-				İzlerken önbelleğe alınan yayınlar.
-				{entries && entries.length > 0 && ` Toplam ${formatBytes(total)}.`}
+				Streams cached while watching.
+				{entries && entries.length > 0 && ` ${formatBytes(total)} in total.`}
 			</p>
 
 			{entries?.length === 0 && (
 				<div className="empty">
-					<h2>Henüz bir şey yok</h2>
+					<h2>Nothing here yet</h2>
 					<p>
-						"Diskte tut" önbellek modunda izlediklerin burada birikir; tekrar
-						izlemek anında başlar.
+						With the keep-downloads cache mode, everything you watch piles up
+						here and rewatching starts instantly.
 					</p>
 				</div>
 			)}
@@ -51,7 +51,7 @@ function DownloadsPage() {
 							<HardDrive aria-hidden />
 							<span className="download-name">{entry.name}</span>
 							<span className="download-size">
-								{formatBytes(entry.sizeBytes)}
+								{formatBytes(Number(entry.sizeBytes))}
 							</span>
 							<button
 								type="button"
@@ -62,7 +62,7 @@ function DownloadsPage() {
 								}}
 							>
 								<Trash2 aria-hidden />
-								Sil
+								Delete
 							</button>
 						</li>
 					))}

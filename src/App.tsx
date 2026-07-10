@@ -29,15 +29,15 @@ function App() {
 					<Route index element={<DiscoverPage />} />
 					<Route
 						path="movies"
-						element={<TypeBoardPage contentType="movie" title="Filmler" />}
+						element={<TypeBoardPage contentType="movie" title="Movies" />}
 					/>
 					<Route
 						path="series"
-						element={<TypeBoardPage contentType="series" title="Diziler" />}
+						element={<TypeBoardPage contentType="series" title="Series" />}
 					/>
 					<Route
 						path="anime"
-						element={<TypeBoardPage contentType="anime" title="Animeler" />}
+						element={<TypeBoardPage contentType="anime" title="Anime" />}
 					/>
 					<Route path="continue" element={<ContinuePage />} />
 					<Route path="downloads" element={<DownloadsPage />} />

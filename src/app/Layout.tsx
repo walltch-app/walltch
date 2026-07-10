@@ -118,21 +118,21 @@ function Layout() {
 				</div>
 				<TopbarSearch />
 				<div className="topbar-spacer" data-tauri-drag-region />
-				<div className="avatar" title="Profil">
+				<div className="avatar" title="Profile">
 					<User aria-hidden />
 				</div>
 				<div className="win-controls">
 					<button
 						type="button"
 						onClick={() => win.minimize()}
-						aria-label="Simge durumuna küçült"
+						aria-label="Minimize"
 					>
 						<Minus aria-hidden />
 					</button>
 					<button
 						type="button"
 						onClick={() => win.toggleMaximize()}
-						aria-label="Ekranı kapla"
+						aria-label="Maximize"
 					>
 						<Square aria-hidden />
 					</button>
@@ -140,7 +140,7 @@ function Layout() {
 						type="button"
 						className="win-close"
 						onClick={() => win.close()}
-						aria-label="Kapat"
+						aria-label="Close"
 					>
 						<X aria-hidden />
 					</button>
@@ -160,54 +160,54 @@ function Layout() {
 							<ChevronLeft aria-hidden />
 						)}
 					</button>
-					<nav aria-label="Ana menü">
-						<NavLink to="/" end className={linkClass} title="Keşfet">
+					<nav aria-label="Main">
+						<NavLink to="/" end className={linkClass} title="Discover">
 							<Compass aria-hidden />
-							<span className="nav-label">Keşfet</span>
+							<span className="nav-label">Discover</span>
 						</NavLink>
-						<NavLink to="/movies" className={linkClass} title="Filmler">
+						<NavLink to="/movies" className={linkClass} title="Movies">
 							<Clapperboard aria-hidden />
-							<span className="nav-label">Filmler</span>
+							<span className="nav-label">Movies</span>
 						</NavLink>
-						<NavLink to="/series" className={linkClass} title="Diziler">
+						<NavLink to="/series" className={linkClass} title="Series">
 							<Tv aria-hidden />
-							<span className="nav-label">Diziler</span>
+							<span className="nav-label">Series</span>
 						</NavLink>
-						<NavLink to="/anime" className={linkClass} title="Animeler">
+						<NavLink to="/anime" className={linkClass} title="Anime">
 							<Cat aria-hidden />
-							<span className="nav-label">Animeler</span>
+							<span className="nav-label">Anime</span>
 						</NavLink>
-						<NavLink to="/library" className={linkClass} title="Listem">
+						<NavLink to="/library" className={linkClass} title="My List">
 							<Bookmark aria-hidden />
-							<span className="nav-label">Listem</span>
+							<span className="nav-label">My List</span>
 						</NavLink>
-						<NavLink to="/continue" className={linkClass} title="Devam Et">
+						<NavLink to="/continue" className={linkClass} title="Continue">
 							<History aria-hidden />
-							<span className="nav-label">Devam Et</span>
+							<span className="nav-label">Continue</span>
 						</NavLink>
-						<NavLink to="/downloads" className={linkClass} title="İndirilenler">
+						<NavLink to="/downloads" className={linkClass} title="Downloads">
 							<Download aria-hidden />
-							<span className="nav-label">İndirilenler</span>
+							<span className="nav-label">Downloads</span>
 						</NavLink>
-						<NavLink to="/addons" className={linkClass} title="Eklentiler">
+						<NavLink to="/addons" className={linkClass} title="Addons">
 							<Puzzle aria-hidden />
-							<span className="nav-label">Eklentiler</span>
+							<span className="nav-label">Addons</span>
 						</NavLink>
 					</nav>
 					<div className="nav-divider" />
-					<nav aria-label="İkincil menü">
-						<NavLink to="/settings" className={linkClass} title="Ayarlar">
+					<nav aria-label="Secondary">
+						<NavLink to="/settings" className={linkClass} title="Settings">
 							<Settings aria-hidden />
-							<span className="nav-label">Ayarlar</span>
+							<span className="nav-label">Settings</span>
 						</NavLink>
-						<NavLink to="/profile" className={linkClass} title="Profil">
+						<NavLink to="/profile" className={linkClass} title="Profile">
 							<User aria-hidden />
-							<span className="nav-label">Profil</span>
+							<span className="nav-label">Profile</span>
 						</NavLink>
 					</nav>
 					<div className="spacer" />
 					<blockquote className="sidebar-quote nav-label">
-						İyi bir film, üstüne düşünüldükçe daha da güzelleşir.
+						A good film gets better the more you think about it.
 					</blockquote>
 				</aside>
 				<main className="content">

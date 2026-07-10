@@ -20,13 +20,13 @@ function ContinuePage() {
 
 	return (
 		<div className="page">
-			<h1 className="page-title">Devam Et</h1>
-			<p className="page-subtitle">Kaldığın yerden sürdür.</p>
+			<h1 className="page-title">Continue watching</h1>
+			<p className="page-subtitle">Pick up where you left off.</p>
 
 			{entries?.length === 0 && (
 				<div className="empty">
-					<h2>Henüz bir şey yok</h2>
-					<p>İzlemeye başladığın her şey burada seni bekler.</p>
+					<h2>Nothing yet</h2>
+					<p>Everything you start watching waits for you here.</p>
 				</div>
 			)}
 

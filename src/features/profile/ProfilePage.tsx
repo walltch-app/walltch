@@ -24,9 +24,9 @@ function ProfilePage() {
 					<User aria-hidden />
 				</div>
 				<div>
-					<h1 className="page-title">Profil</h1>
+					<h1 className="page-title">Profile</h1>
 					<p className="page-subtitle">
-						Hesaplar ve cihazlar arası senkron yakında geliyor.
+						Accounts and cross-device sync are on the way.
 					</p>
 				</div>
 			</div>
@@ -34,11 +34,11 @@ function ProfilePage() {
 			<div className="profile-stats">
 				<div className="stat-card">
 					<span className="stat-value">{watching}</span>
-					<span className="stat-label">devam eden</span>
+					<span className="stat-label">in progress</span>
 				</div>
 				<div className="stat-card">
 					<span className="stat-value">{saved}</span>
-					<span className="stat-label">listende</span>
+					<span className="stat-label">in your list</span>
 				</div>
 			</div>
 		</div>
