@@ -6,7 +6,6 @@ import SearchResults from "../search/SearchResults";
 import CatalogRow from "./CatalogRow";
 import ContinueRow from "./ContinueRow";
 import FeaturedBillboard from "./FeaturedBillboard";
-import FriendRail from "./FriendRail";
 import "./discover.css";
 
 function DiscoverPage() {
@@ -46,34 +45,31 @@ function DiscoverPage() {
 			{query ? (
 				<SearchResults query={query} />
 			) : (
-				<div className="home-grid">
-					<div className="home-main">
-						{catalogs?.length === 0 && (
-							<div className="empty">
-								<h2>No catalogs yet</h2>
-								<p>
-									Install an addon that provides catalogs — Cinemeta, for
-									example — and they will show up here.
-								</p>
-								<Link to="/addons" className="btn">
-									Install an addon
-								</Link>
-							</div>
-						)}
+				<>
+					{catalogs?.length === 0 && (
+						<div className="empty">
+							<h2>No catalogs yet</h2>
+							<p>
+								Install an addon that provides catalogs — Cinemeta, for example
+								— and they will show up here.
+							</p>
+							<Link to="/addons" className="btn">
+								Install an addon
+							</Link>
+						</div>
+					)}
 
-						{hasCatalogs && <FeaturedBillboard catalog={catalogs[0]} />}
+					{hasCatalogs && <FeaturedBillboard catalog={catalogs[0]} />}
 
-						<ContinueRow />
+					<ContinueRow />
 
-						{catalogs?.map((catalog) => (
-							<CatalogRow
-								key={`${catalog.transportUrl}/${catalog.type}/${catalog.id}`}
-								catalog={catalog}
-							/>
-						))}
-					</div>
-					<FriendRail />
-				</div>
+					{catalogs?.map((catalog) => (
+						<CatalogRow
+							key={`${catalog.transportUrl}/${catalog.type}/${catalog.id}`}
+							catalog={catalog}
+						/>
+					))}
+				</>
 			)}
 		</div>
 	);

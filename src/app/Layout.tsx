@@ -25,6 +25,7 @@ import {
 	useNavigate,
 	useSearchParams,
 } from "react-router";
+import FriendRail from "../components/FriendRail";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
 	isActive ? "nav-link active" : "nav-link";
@@ -206,13 +207,14 @@ function Layout() {
 						</NavLink>
 					</nav>
 					<div className="spacer" />
-					<blockquote className="sidebar-quote nav-label">
-						A good film gets better the more you think about it.
-					</blockquote>
+					<div className="sidebar-glow nav-label" aria-hidden>
+						<img src="/sidebar-glow.png" alt="" />
+					</div>
 				</aside>
 				<main className="content">
 					<Outlet />
 				</main>
+				<FriendRail />
 			</div>
 		</div>
 	);

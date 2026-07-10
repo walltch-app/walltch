@@ -190,25 +190,23 @@ textarea {
 	min-height: 0;
 }
 
-.sidebar-quote {
+/* Decorative glow riding the bottom of the sidebar; fades up into the
+   canvas so it reads as ambient light, not a framed picture. Dropped
+   entirely when the sidebar collapses (see .sidebar-min .nav-label). */
+.sidebar-glow {
 	position: relative;
-	padding: 18px 12px 10px;
-	border: 0;
-	color: var(--muted);
-	font-size: 0.78rem;
-	font-style: italic;
-	line-height: 1.5;
-	opacity: 0.85;
+	height: 180px;
+	margin: 0 -8px -6px;
+	overflow: hidden;
+	-webkit-mask-image: linear-gradient(180deg, transparent, #000 55%);
+	mask-image: linear-gradient(180deg, transparent, #000 55%);
 }
 
-.sidebar-quote::before {
-	content: "“";
-	display: block;
-	font-family: var(--font-display);
-	font-size: 1.6rem;
-	font-style: normal;
-	line-height: 0.6;
-	color: color-mix(in srgb, var(--accent) 65%, var(--muted));
+.sidebar-glow img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center 30%;
 }
 
 .nav-divider {
@@ -374,9 +372,129 @@ textarea {
 	border-radius: 20px;
 }
 
+/* ---- Friend activity rail: global chrome, Spotify-style ---- */
+/* A flex sibling of .sidebar/.content, so it stretches to the shell's
+   full height for free — no viewport math needed. */
+
+.friend-rail {
+	display: flex;
+	flex-direction: column;
+	width: 280px;
+	flex-shrink: 0;
+	border-radius: 20px;
+	background: color-mix(in srgb, var(--surface) 65%, transparent);
+	border: 1px solid var(--line);
+	box-shadow: inset 0 1px 0 var(--edge);
+	overflow: hidden;
+}
+
+.friend-rail header {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	padding: 18px 16px;
+	border-bottom: 1px solid var(--line);
+	flex-shrink: 0;
+}
+
+.friend-rail-icon {
+	width: 17px;
+	height: 17px;
+	color: var(--accent-2);
+}
+
+.friend-rail h3 {
+	font-family: var(--font-display);
+	font-size: 1rem;
+	font-weight: 650;
+}
+
+.friend-rail-collapse {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: auto;
+	padding: 5px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--muted);
+	cursor: pointer;
+	transition:
+		color 130ms ease,
+		background-color 130ms ease;
+}
+
+.friend-rail-collapse:hover {
+	color: var(--text);
+	background: color-mix(in srgb, var(--surface-2) 80%, transparent);
+}
+
+.friend-rail-collapse svg {
+	width: 16px;
+	height: 16px;
+}
+
+.friend-rail-empty {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	padding: 28px 26px;
+	text-align: center;
+}
+
+.friend-rail-empty p {
+	font-family: var(--font-display);
+	font-size: 0.95rem;
+	font-weight: 600;
+}
+
+.friend-rail-empty span {
+	color: var(--muted);
+	font-size: 0.82rem;
+	line-height: 1.5;
+}
+
+/* Collapsed: a slim full-height handle, Spotify-style. */
+.friend-rail-reopen {
+	display: flex;
+	flex-shrink: 0;
+	align-items: flex-start;
+	justify-content: center;
+	width: 52px;
+	padding-top: 18px;
+	border: 1px solid var(--line);
+	border-radius: 20px;
+	background: color-mix(in srgb, var(--surface) 65%, transparent);
+	color: var(--muted);
+	cursor: pointer;
+	transition:
+		color 130ms ease,
+		border-color 130ms ease;
+}
+
+.friend-rail-reopen:hover {
+	color: var(--text);
+	border-color: var(--accent);
+}
+
+.friend-rail-reopen svg {
+	width: 18px;
+	height: 18px;
+}
+
+@media (max-width: 1300px) {
+	.friend-rail,
+	.friend-rail-reopen {
+		display: none;
+	}
+}
+
 .page {
 	position: relative;
-	max-width: 1480px;
 	padding: 34px 38px 56px;
 }
 
