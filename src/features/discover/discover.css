@@ -1,3 +1,131 @@
+/* ---- Home layout: board plus the right rail ---- */
+
+.home-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 296px;
+	gap: 26px;
+	align-items: start;
+}
+
+.home-main {
+	min-width: 0;
+}
+
+@media (max-width: 1360px) {
+	.home-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.home-rail {
+		display: none;
+	}
+}
+
+.home-rail {
+	position: sticky;
+	top: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.rail-card {
+	padding: 18px;
+	background: color-mix(in srgb, var(--surface) 70%, transparent);
+	border: 1px solid var(--line);
+	border-radius: 18px;
+	box-shadow: inset 0 1px 0 var(--edge);
+}
+
+.rail-card header {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	margin-bottom: 14px;
+}
+
+.rail-card header svg {
+	width: 16px;
+	height: 16px;
+	color: var(--accent-2);
+}
+
+.rail-card h3 {
+	font-family: var(--font-display);
+	font-size: 1rem;
+	font-weight: 650;
+}
+
+.rail-list {
+	list-style: none;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.rail-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 5px;
+	border-radius: 12px;
+	transition: background-color 130ms ease;
+}
+
+.rail-item:hover {
+	background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+}
+
+.rail-item img,
+.rail-thumb-fallback {
+	width: 42px;
+	height: 58px;
+	flex-shrink: 0;
+	border-radius: 8px;
+	object-fit: cover;
+	background: var(--surface-2);
+}
+
+.rail-thumb-fallback {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--muted);
+	font-family: var(--font-display);
+	font-weight: 600;
+}
+
+.rail-info {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.rail-name {
+	font-size: 0.86rem;
+	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.rail-rating {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	color: var(--muted);
+	font-size: 0.76rem;
+}
+
+.rail-rating svg {
+	width: 11px;
+	height: 11px;
+	color: var(--accent-2);
+	fill: var(--accent-2);
+}
+
 /* ---- Featured billboard ---- */
 
 .billboard {
