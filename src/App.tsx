@@ -6,6 +6,7 @@ import DetailPage from "./features/detail/DetailPage";
 import DiscoverPage from "./features/discover/DiscoverPage";
 import LibraryPage from "./features/library/LibraryPage";
 import PlayerPage from "./features/player/PlayerPage";
+import SearchPage from "./features/search/SearchPage";
 import SettingsPage from "./features/settings/SettingsPage";
 import { getSettings } from "./lib/api";
 import { applyAccent } from "./lib/theme";
@@ -22,6 +23,7 @@ function App() {
 			<Routes>
 				<Route element={<Layout />}>
 					<Route index element={<DiscoverPage />} />
+					<Route path="search" element={<SearchPage />} />
 					<Route path="library" element={<LibraryPage />} />
 					<Route path="addons" element={<AddonsPage />} />
 					<Route path="detail/:type/:id" element={<DetailPage />} />

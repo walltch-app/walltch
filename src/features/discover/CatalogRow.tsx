@@ -5,7 +5,7 @@ import { getCatalog } from "../../lib/api";
 import type { CatalogDescriptor } from "../../lib/bindings/CatalogDescriptor";
 import type { MetaPreview } from "../../lib/bindings/MetaPreview";
 
-function PosterCard({ meta }: { meta: MetaPreview }) {
+export function PosterCard({ meta }: { meta: MetaPreview }) {
 	return (
 		<Link
 			className="poster"
