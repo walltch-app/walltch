@@ -103,14 +103,18 @@
 	background: var(--surface-2);
 	object-fit: cover;
 	transition:
-		transform 140ms ease,
-		border-color 140ms ease;
+		transform 160ms ease,
+		border-color 160ms ease,
+		box-shadow 160ms ease;
 }
 
 .poster:hover img,
 .poster:hover .poster-fallback {
-	transform: translateY(-3px);
+	transform: translateY(-4px) scale(1.02);
 	border-color: var(--accent);
+	box-shadow:
+		0 14px 30px rgba(0, 0, 0, 0.45),
+		0 0 18px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .poster-fallback {

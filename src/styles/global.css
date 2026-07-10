@@ -65,6 +65,10 @@ textarea {
 	border: 2px solid var(--bg);
 }
 
+::-webkit-scrollbar-thumb:hover {
+	background: color-mix(in srgb, var(--accent) 40%, var(--surface-2));
+}
+
 /* ---- App shell ---- */
 
 .shell {
@@ -91,9 +95,12 @@ textarea {
 }
 
 .brand img {
-	width: 34px;
-	height: 34px;
+	width: 36px;
+	height: 36px;
 	object-fit: contain;
+	filter: drop-shadow(
+		0 0 14px color-mix(in srgb, var(--accent) 60%, transparent)
+	);
 }
 
 .brand span {
@@ -145,7 +152,8 @@ textarea {
 
 .nav-link.active {
 	color: var(--text);
-	background: var(--surface-2);
+	background: color-mix(in srgb, var(--accent) 14%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .nav-link.active::before {
@@ -163,23 +171,23 @@ textarea {
 	overflow-y: auto;
 }
 
-/* Faint ambient wash in the logo's colors, so the canvas isn't a flat void
-   before posters bring their own color. */
+/* Ambient wash in the accent colors, so the canvas isn't a flat void
+   before posters bring their own color. Follows the chosen accent preset. */
 .content::before {
 	content: "";
 	position: fixed;
 	inset: 0 0 auto;
-	height: 320px;
+	height: 380px;
 	pointer-events: none;
 	background:
 		radial-gradient(
-			560px 300px at 28% -12%,
-			rgba(47, 92, 255, 0.16),
+			640px 340px at 26% -14%,
+			color-mix(in srgb, var(--accent) 20%, transparent),
 			transparent 70%
 		),
 		radial-gradient(
-			520px 280px at 72% -16%,
-			rgba(28, 184, 240, 0.1),
+			580px 300px at 74% -18%,
+			color-mix(in srgb, var(--accent-2) 13%, transparent),
 			transparent 70%
 		);
 }
@@ -218,18 +226,23 @@ textarea {
 	font-size: 0.9rem;
 	font-weight: 600;
 	cursor: pointer;
-	transition: filter 120ms ease;
+	box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 35%, transparent);
+	transition:
+		filter 120ms ease,
+		box-shadow 120ms ease;
 }
 
 .btn:hover {
 	filter: brightness(1.12);
+	box-shadow: 0 8px 28px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 .empty {
 	margin-top: 40px;
 	padding: 56px 32px;
 	border: 1px dashed var(--line);
-	border-radius: 14px;
+	border-radius: 16px;
+	background: color-mix(in srgb, var(--surface) 55%, transparent);
 	text-align: center;
 }
 
