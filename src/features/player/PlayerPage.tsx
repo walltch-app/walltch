@@ -13,6 +13,7 @@ import {
 	Play,
 	RotateCcw,
 	RotateCw,
+	SkipForward,
 	Volume2,
 	VolumeX,
 } from "lucide-react";
@@ -34,7 +35,9 @@ import {
 	setProperty,
 } from "tauri-plugin-libmpv-api";
 import {
+	getMeta,
 	getSettings,
+	getStreams,
 	getSubtitles,
 	getVideoProgress,
 	resolveStream,
@@ -43,6 +46,7 @@ import {
 import type { AddonStream } from "../../lib/bindings/AddonStream";
 import type { AddonSubtitle } from "../../lib/bindings/AddonSubtitle";
 import type { Settings } from "../../lib/bindings/Settings";
+import type { Video } from "../../lib/bindings/Video";
 import { langAliases, langMatches } from "../../lib/lang";
 import "./player.css";
 
@@ -115,6 +119,20 @@ function mpvConfig(settings: Settings | null): MpvConfig {
 		);
 	}
 	return { initialOptions, observedProperties: OBSERVED_PROPERTIES };
+}
+
+function episodeLabel(video: Video) {
+	if (video.season != null && video.episode != null) {
+		return `S${video.season} · E${video.episode}`;
+	}
+	return video.title ?? video.id;
+}
+
+/** Series order: by season (specials last), then episode. */
+function episodeOrder(a: Video, b: Video) {
+	const seasonKey = (v: Video) =>
+		v.season === 0 ? Number.POSITIVE_INFINITY : (v.season ?? 0);
+	return seasonKey(a) - seasonKey(b) || (a.episode ?? 0) - (b.episode ?? 0);
 }
 
 function formatTime(secs: number) {
@@ -242,12 +260,16 @@ function MpvPlayer({
 	context,
 	preferredSubtitleLang,
 	onError,
+	onNext,
+	nextLoading,
 }: {
 	url: string;
 	title: string;
 	context: PlayContext | null;
 	preferredSubtitleLang: string;
 	onError: (message: string) => void;
+	onNext?: () => void;
+	nextLoading?: boolean;
 }) {
 	const navigate = useNavigate();
 	const [paused, setPaused] = useState(false);
@@ -268,6 +290,9 @@ function MpvPlayer({
 	const idleTimer = useRef<number>(0);
 	const resumeTargetRef = useRef<number | null>(null);
 	const resumeAppliedRef = useRef(false);
+	const eofFiredRef = useRef(false);
+	const onNextRef = useRef(onNext);
+	onNextRef.current = onNext;
 	const { positionRef, durationRef, lastSavedRef, persist } =
 		useProgressSaver(context);
 
@@ -345,10 +370,12 @@ function MpvPlayer({
 								}
 								break;
 							case "eof-reached":
-								if (data) {
-									// Watched to the end: record as finished.
+								if (data && !eofFiredRef.current) {
+									eofFiredRef.current = true;
+									// Watched to the end: record as finished, roll on.
 									positionRef.current = durationRef.current;
 									persist();
+									onNextRef.current?.();
 								}
 								break;
 							case "track-list":
@@ -556,6 +583,17 @@ function MpvPlayer({
 					<div className="spinner" aria-hidden />
 				</div>
 			)}
+			{onNext && duration > 0 && duration - timePos < 45 && (
+				<button
+					type="button"
+					className="btn next-up"
+					onClick={onNext}
+					disabled={nextLoading}
+				>
+					<SkipForward aria-hidden />
+					{nextLoading ? "Loading…" : "Next episode"}
+				</button>
+			)}
 			{!buffering && paused && (
 				<div className="center-status center-paused" aria-hidden>
 					<Play />
@@ -596,6 +634,18 @@ function MpvPlayer({
 						<RotateCw aria-hidden />
 						<i>10</i>
 					</button>
+					{onNext && (
+						<button
+							type="button"
+							className="icon-btn"
+							onClick={onNext}
+							disabled={nextLoading}
+							aria-label="Next episode"
+							title="Next episode"
+						>
+							<SkipForward aria-hidden />
+						</button>
+					)}
 
 					<div className="volume-group">
 						<button
@@ -868,6 +918,59 @@ function PlayerPage() {
 	const [playerSettings, setPlayerSettings] = useState<Settings | null>(null);
 	// null = still initializing, false = mpv unavailable (fall back to <video>)
 	const [mpvReady, setMpvReady] = useState<boolean | null>(null);
+	const [nextVideo, setNextVideo] = useState<Video | null>(null);
+	const [nextLoading, setNextLoading] = useState(false);
+
+	const context = state?.context ?? null;
+
+	// Series only: figure out which episode comes after this one.
+	useEffect(() => {
+		setNextVideo(null);
+		if (!context || context.videoId === context.metaId) return;
+		getMeta(context.contentType, context.metaId)
+			.then((meta) => {
+				const ordered = [...meta.videos].sort(episodeOrder);
+				const index = ordered.findIndex((v) => v.id === context.videoId);
+				if (index >= 0 && index + 1 < ordered.length) {
+					setNextVideo(ordered[index + 1]);
+				}
+			})
+			.catch(() => {});
+	}, [context]);
+
+	// Pick a stream for the next episode: same binge group first, then the
+	// same addon and quality label, then whatever comes first.
+	const playNext = useCallback(async () => {
+		if (!nextVideo || !context || !state || nextLoading) return;
+		setNextLoading(true);
+		try {
+			const streams = await getStreams(context.contentType, nextVideo.id);
+			if (streams.length === 0) return;
+			const current = state.stream;
+			const binge = current.behaviorHints.bingeGroup;
+			const pick =
+				(binge && streams.find((s) => s.behaviorHints.bingeGroup === binge)) ||
+				streams.find(
+					(s) => s.addonName === current.addonName && s.name === current.name,
+				) ||
+				streams[0];
+			const next: PlayerLocationState = {
+				stream: pick,
+				title: [
+					context.name,
+					`${episodeLabel(nextVideo)} — ${nextVideo.title ?? ""}`,
+				]
+					.filter(Boolean)
+					.join(" — "),
+				context: { ...context, videoId: nextVideo.id },
+			};
+			navigate("/player", { state: next, replace: true });
+		} catch {
+			// No streams for the next episode; the button just stays.
+		} finally {
+			setNextLoading(false);
+		}
+	}, [nextVideo, context, state, nextLoading, navigate]);
 
 	useEffect(() => {
 		let active = true;
@@ -896,6 +999,9 @@ function PlayerPage() {
 	useEffect(() => {
 		if (!state) return;
 		let stale = false;
+		// Reset between episodes so the spinner shows during the switch.
+		setPlayUrl(null);
+		setError(null);
 		resolveStream(state.stream)
 			.then((resolved) => {
 				if (!stale) setPlayUrl(resolved.playUrl);
@@ -916,7 +1022,6 @@ function PlayerPage() {
 
 	const title = state.title ?? state.stream.name ?? "Now playing";
 	const notWebReady = state.stream.behaviorHints.notWebReady;
-	const context = state.context ?? null;
 	const mpvActive = mpvReady === true && playUrl !== null && !error;
 
 	return (
@@ -971,11 +1076,14 @@ function PlayerPage() {
 
 			{!error && playUrl && mpvReady === true && (
 				<MpvPlayer
+					key={playUrl}
 					url={playUrl}
 					title={title}
 					context={context}
 					preferredSubtitleLang={playerSettings?.preferredSubtitleLang ?? ""}
 					onError={setError}
+					onNext={nextVideo ? playNext : undefined}
+					nextLoading={nextLoading}
 				/>
 			)}
 

@@ -60,6 +60,18 @@
 	text-overflow: ellipsis;
 }
 
+.next-up {
+	position: absolute;
+	right: 28px;
+	bottom: 118px;
+	z-index: 2;
+}
+
+.next-up svg {
+	width: 16px;
+	height: 16px;
+}
+
 .center-status {
 	position: absolute;
 	inset: 0;
