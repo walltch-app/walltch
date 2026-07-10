@@ -87,6 +87,14 @@ pub struct Settings {
     pub accent: String,
     /// Prefer the embedded mpv over the webview <video> element.
     pub use_mpv: bool,
+    /// mpv hwdec: auto-safe when on, software decoding when off.
+    pub hardware_decoding: bool,
+    /// mpv sub-scale multiplier.
+    pub subtitle_scale: f64,
+    /// Torrent download cap in MB/s; 0 means unlimited.
+    pub download_limit_mbps: f64,
+    /// Torrent upload cap in MB/s; 0 means unlimited.
+    pub upload_limit_mbps: f64,
 }
 
 impl Default for Settings {
@@ -94,6 +102,10 @@ impl Default for Settings {
         Self {
             accent: "walltch-blue".to_owned(),
             use_mpv: true,
+            hardware_decoding: true,
+            subtitle_scale: 1.0,
+            download_limit_mbps: 0.0,
+            upload_limit_mbps: 0.0,
         }
     }
 }

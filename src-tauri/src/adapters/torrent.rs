@@ -4,7 +4,8 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use librqbit::http_api::{HttpApi, HttpApiOptions};
-use librqbit::{AddTorrent, AddTorrentOptions, Api, Session};
+use librqbit::limits::LimitsConfig;
+use librqbit::{AddTorrent, AddTorrentOptions, Api, Session, SessionOptions};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::Serialize;
 use tokio::sync::OnceCell;
@@ -52,15 +53,23 @@ impl TorrentEngine {
         }
     }
 
-    async fn engine(&self) -> anyhow::Result<&EngineState> {
+    /// Rate limits apply when the session first starts; changing them later
+    /// takes effect on the next app launch.
+    async fn engine(&self, ratelimits: LimitsConfig) -> anyhow::Result<&EngineState> {
         self.state
             .get_or_try_init(|| async {
                 tokio::fs::create_dir_all(&self.download_dir)
                     .await
                     .context("creating download dir")?;
-                let session = Session::new(self.download_dir.clone())
-                    .await
-                    .context("starting torrent session")?;
+                let session = Session::new_with_opts(
+                    self.download_dir.clone(),
+                    SessionOptions {
+                        ratelimits,
+                        ..Default::default()
+                    },
+                )
+                .await
+                .context("starting torrent session")?;
 
                 // librqbit ships an HTTP server whose /torrents/{hash}/stream/{idx}
                 // endpoint understands Range headers — exactly what <video> needs.
@@ -96,8 +105,9 @@ impl TorrentEngine {
         info_hash: &str,
         file_idx: Option<u32>,
         sources: &[String],
+        ratelimits: LimitsConfig,
     ) -> anyhow::Result<ResolvedStream> {
-        let engine = self.engine().await?;
+        let engine = self.engine(ratelimits).await?;
         let magnet = build_magnet(info_hash, sources);
         let opts = AddTorrentOptions {
             only_files: file_idx.map(|idx| vec![idx as usize]),

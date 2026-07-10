@@ -74,6 +74,98 @@ function SettingsPage() {
 								</p>
 							</div>
 						</label>
+						<label className="settings-toggle">
+							<input
+								type="checkbox"
+								checked={settings.hardwareDecoding}
+								onChange={(e) =>
+									update({
+										...settings,
+										hardwareDecoding: e.currentTarget.checked,
+									})
+								}
+							/>
+							<div>
+								<span>Hardware decoding</span>
+								<p className="settings-hint">
+									Uses your GPU to decode video. Turn it off if you see
+									artifacts or crashes on older graphics drivers.
+								</p>
+							</div>
+						</label>
+					</section>
+
+					<section className="settings-section">
+						<h2>Subtitle size</h2>
+						<div className="size-chips">
+							{(
+								[
+									[0.8, "Small"],
+									[1.0, "Normal"],
+									[1.2, "Large"],
+									[1.4, "Larger"],
+								] as const
+							).map(([scale, label]) => (
+								<button
+									type="button"
+									key={scale}
+									className={
+										Math.abs(settings.subtitleScale - scale) < 0.01
+											? "chip chip-active"
+											: "chip"
+									}
+									onClick={() => update({ ...settings, subtitleScale: scale })}
+								>
+									{label}
+								</button>
+							))}
+						</div>
+					</section>
+
+					<section className="settings-section">
+						<h2>Streaming</h2>
+						<p className="settings-hint">
+							Torrent speed caps in MB/s — 0 means unlimited. Applies from the
+							next app launch.
+						</p>
+						<div className="limit-row">
+							<label>
+								<span>Download limit</span>
+								<input
+									type="number"
+									min={0}
+									step={0.5}
+									value={settings.downloadLimitMbps}
+									onChange={(e) =>
+										update({
+											...settings,
+											downloadLimitMbps: Math.max(
+												0,
+												Number(e.currentTarget.value) || 0,
+											),
+										})
+									}
+								/>
+							</label>
+							<label>
+								<span>Upload limit</span>
+								<input
+									type="number"
+									min={0}
+									step={0.5}
+									value={settings.uploadLimitMbps}
+									onChange={(e) =>
+										update({
+											...settings,
+											uploadLimitMbps: Math.max(
+												0,
+												Number(e.currentTarget.value) || 0,
+											),
+										})
+									}
+								/>
+							</label>
+						</div>
 					</section>
 				</>
 			)}

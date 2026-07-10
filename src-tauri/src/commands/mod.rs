@@ -156,10 +156,16 @@ pub async fn remove_continue_watching(
         .map_err(|e| e.to_string())
 }
 
+/// MB/s from settings to the bytes-per-second the torrent engine wants.
+fn to_bps(mbps: f64) -> Option<std::num::NonZeroU32> {
+    std::num::NonZeroU32::new((mbps.max(0.0) * 1024.0 * 1024.0) as u32)
+}
+
 /// Turn a stream source into something the player can open. Torrents spin
 /// up the local streaming engine; plain URLs pass through untouched.
 #[tauri::command]
 pub async fn resolve_stream(
+    state: State<'_, AppState>,
     engine: State<'_, TorrentEngine>,
     source: StreamSource,
 ) -> Result<ResolvedStream, String> {
@@ -172,10 +178,17 @@ pub async fn resolve_stream(
             info_hash,
             file_idx,
             sources,
-        } => engine
-            .stream_torrent(&info_hash, file_idx, &sources)
-            .await
-            .map_err(|e| format!("{e:#}")),
+        } => {
+            let settings = state.settings().await;
+            let ratelimits = librqbit::limits::LimitsConfig {
+                download_bps: to_bps(settings.download_limit_mbps),
+                upload_bps: to_bps(settings.upload_limit_mbps),
+            };
+            engine
+                .stream_torrent(&info_hash, file_idx, &sources, ratelimits)
+                .await
+                .map_err(|e| format!("{e:#}"))
+        }
         StreamSource::YouTube { .. } => Err("YouTube streams aren't supported yet.".to_owned()),
         StreamSource::External { .. } => {
             Err("This stream only plays on an external site.".to_owned())

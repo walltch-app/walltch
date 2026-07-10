@@ -93,15 +93,23 @@ function trackLabel(track: MpvTrack) {
 	return track.lang ? `${name} · ${track.lang}` : name;
 }
 
-const MPV_CONFIG: MpvConfig = {
-	initialOptions: {
-		vo: "gpu-next",
-		hwdec: "auto-safe",
-		"keep-open": "yes",
-		"force-window": "yes",
-	},
-	observedProperties: OBSERVED_PROPERTIES,
-};
+function mpvConfig(
+	settings: {
+		hardwareDecoding: boolean;
+		subtitleScale: number;
+	} | null,
+): MpvConfig {
+	return {
+		initialOptions: {
+			vo: "gpu-next",
+			hwdec: settings?.hardwareDecoding === false ? "no" : "auto-safe",
+			"sub-scale": String(settings?.subtitleScale ?? 1),
+			"keep-open": "yes",
+			"force-window": "yes",
+		},
+		observedProperties: OBSERVED_PROPERTIES,
+	};
+}
 
 function formatTime(secs: number) {
 	const total = Math.max(0, Math.floor(secs));
@@ -830,7 +838,7 @@ function PlayerPage() {
 				}
 				// A leftover instance from a previous session would make init fail.
 				await destroy().catch(() => {});
-				await init(MPV_CONFIG);
+				await init(mpvConfig(settings));
 				if (active) setMpvReady(true);
 			} catch {
 				if (active) setMpvReady(false);

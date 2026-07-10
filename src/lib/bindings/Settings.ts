@@ -12,4 +12,20 @@ accent: string,
 /**
  * Prefer the embedded mpv over the webview <video> element.
  */
-useMpv: boolean, };
+useMpv: boolean, 
+/**
+ * mpv hwdec: auto-safe when on, software decoding when off.
+ */
+hardwareDecoding: boolean, 
+/**
+ * mpv sub-scale multiplier.
+ */
+subtitleScale: number, 
+/**
+ * Torrent download cap in MB/s; 0 means unlimited.
+ */
+downloadLimitMbps: number, 
+/**
+ * Torrent upload cap in MB/s; 0 means unlimited.
+ */
+uploadLimitMbps: number, };
