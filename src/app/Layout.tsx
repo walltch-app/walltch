@@ -1,5 +1,12 @@
-import { Bookmark, Compass, Puzzle, Settings } from "lucide-react";
-import { useEffect } from "react";
+import {
+	Bookmark,
+	ChevronLeft,
+	ChevronRight,
+	Compass,
+	Puzzle,
+	Settings,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -7,6 +14,17 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 
 function Layout() {
 	const navigate = useNavigate();
+	const [collapsed, setCollapsed] = useState(
+		() => localStorage.getItem("sidebar") === "collapsed",
+	);
+
+	const toggleSidebar = () => {
+		setCollapsed((current) => {
+			const next = !current;
+			localStorage.setItem("sidebar", next ? "collapsed" : "open");
+			return next;
+		});
+	};
 
 	// "/" or Ctrl+K focuses the home search from anywhere (unless typing).
 	useEffect(() => {
@@ -28,30 +46,42 @@ function Layout() {
 
 	return (
 		<div className="shell">
-			<aside className="sidebar">
+			<aside className={collapsed ? "sidebar sidebar-min" : "sidebar"}>
+				<button
+					type="button"
+					className="sidebar-toggle"
+					onClick={toggleSidebar}
+					aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+				>
+					{collapsed ? (
+						<ChevronRight aria-hidden />
+					) : (
+						<ChevronLeft aria-hidden />
+					)}
+				</button>
 				<div className="brand">
 					<img src="/logo.png" alt="" />
-					<span>Walltch</span>
+					<span className="nav-label">Walltch</span>
 				</div>
 				<nav aria-label="Main">
-					<NavLink to="/" end className={linkClass}>
+					<NavLink to="/" end className={linkClass} title="Discover">
 						<Compass aria-hidden />
-						Discover
+						<span className="nav-label">Discover</span>
 					</NavLink>
-					<NavLink to="/library" className={linkClass}>
+					<NavLink to="/library" className={linkClass} title="Library">
 						<Bookmark aria-hidden />
-						Library
+						<span className="nav-label">Library</span>
 					</NavLink>
-					<NavLink to="/addons" className={linkClass}>
+					<NavLink to="/addons" className={linkClass} title="Addons">
 						<Puzzle aria-hidden />
-						Addons
+						<span className="nav-label">Addons</span>
 					</NavLink>
 				</nav>
 				<div className="spacer" />
 				<nav aria-label="Secondary">
-					<NavLink to="/settings" className={linkClass}>
+					<NavLink to="/settings" className={linkClass} title="Settings">
 						<Settings aria-hidden />
-						Settings
+						<span className="nav-label">Settings</span>
 					</NavLink>
 				</nav>
 			</aside>
