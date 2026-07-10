@@ -1,7 +1,7 @@
-import { ArrowLeft, Star } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { getMeta } from "../../lib/api";
+import { getMeta, inWatchlist, toggleWatchlist } from "../../lib/api";
 import type { MetaDetail } from "../../lib/bindings/MetaDetail";
 import type { Video } from "../../lib/bindings/Video";
 import StreamsSection from "./StreamsSection";
@@ -27,16 +27,37 @@ function DetailPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [season, setSeason] = useState<number | null>(null);
 	const [selected, setSelected] = useState<Video | null>(null);
+	const [saved, setSaved] = useState<boolean | null>(null);
 
 	useEffect(() => {
 		setMeta(null);
 		setError(null);
 		setSeason(null);
 		setSelected(null);
+		setSaved(null);
 		getMeta(type, metaId)
 			.then(setMeta)
 			.catch((e) => setError(String(e)));
+		inWatchlist(metaId)
+			.then(setSaved)
+			.catch(() => setSaved(false));
 	}, [type, metaId]);
+
+	async function onToggleSaved() {
+		if (!meta) return;
+		try {
+			setSaved(
+				await toggleWatchlist({
+					metaId: meta.id,
+					type: meta.type,
+					name: meta.name,
+					poster: meta.poster,
+				}),
+			);
+		} catch {
+			// Leave the button as-is; the next page load shows the truth.
+		}
+	}
 
 	// Seasons in order, specials (0) last.
 	const seasons = useMemo(() => {
@@ -111,6 +132,19 @@ function DetailPage() {
 							{meta.description && (
 								<p className="hero-overview">{meta.description}</p>
 							)}
+							<button
+								type="button"
+								className={saved ? "btn-save btn-saved" : "btn-save"}
+								onClick={onToggleSaved}
+								disabled={saved === null}
+							>
+								{saved ? (
+									<BookmarkCheck aria-hidden />
+								) : (
+									<Bookmark aria-hidden />
+								)}
+								{saved ? "In library" : "Add to library"}
+							</button>
 						</div>
 					</div>
 				)}

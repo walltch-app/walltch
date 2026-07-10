@@ -8,13 +8,14 @@ use tokio::sync::RwLock;
 use walltch_core::addon::{
     AddonClient, AddonError, ExtraProp, Manifest, MetaDetail, MetaPreview, Stream, Subtitle,
 };
-use walltch_core::library::{ContinueWatching, WatchProgress};
+use walltch_core::library::{ContinueWatching, LibraryItem, WatchProgress, Watchlist};
 use walltch_core::ports::{Clock, HttpClient, Storage, StorageError};
 
 use crate::adapters::{FsStorage, ReqwestHttpClient, SystemClock};
 
 const ADDONS_KEY: &str = "addons.json";
 const LIBRARY_KEY: &str = "library.json";
+const WATCHLIST_KEY: &str = "watchlist.json";
 
 #[derive(Debug, Error)]
 pub enum AppError {
@@ -75,6 +76,18 @@ pub struct AddonSubtitle {
     pub subtitle: Subtitle,
 }
 
+/// What the frontend knows when toggling a library item; the timestamp is
+/// added here.
+#[derive(Debug, Deserialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct WatchlistToggle {
+    pub meta_id: String,
+    pub r#type: String,
+    pub name: String,
+    pub poster: Option<String>,
+}
+
 /// Fields the frontend reports while playing; the timestamp is added here.
 #[derive(Debug, Deserialize, ts_rs::TS)]
 #[ts(export)]
@@ -95,6 +108,7 @@ pub struct AppState {
     clock: Arc<dyn Clock>,
     addons: RwLock<Vec<InstalledAddon>>,
     library: RwLock<ContinueWatching>,
+    watchlist: RwLock<Watchlist>,
 }
 
 impl AppState {
@@ -128,13 +142,23 @@ impl AppState {
     ) -> Result<Self, AppError> {
         let addons: Vec<InstalledAddon> = Self::read_or_default(&*storage, ADDONS_KEY).await?;
         let library: ContinueWatching = Self::read_or_default(&*storage, LIBRARY_KEY).await?;
+        let watchlist: Watchlist = Self::read_or_default(&*storage, WATCHLIST_KEY).await?;
         Ok(Self {
             http,
             storage,
             clock,
             addons: RwLock::new(addons),
             library: RwLock::new(library),
+            watchlist: RwLock::new(watchlist),
         })
+    }
+
+    fn now_ms(&self) -> u64 {
+        self.clock
+            .now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64
     }
 
     async fn persist(&self, addons: &[InstalledAddon]) -> Result<(), AppError> {
@@ -274,13 +298,32 @@ impl AppState {
             .collect())
     }
 
+    /// Returns whether the item is in the library after the toggle.
+    pub async fn toggle_watchlist(&self, toggle: WatchlistToggle) -> Result<bool, AppError> {
+        let item = LibraryItem {
+            meta_id: toggle.meta_id,
+            r#type: toggle.r#type,
+            name: toggle.name,
+            poster: toggle.poster,
+            added_at_ms: self.now_ms(),
+        };
+        let mut watchlist = self.watchlist.write().await;
+        let saved = watchlist.toggle(item);
+        let bytes = serde_json::to_vec_pretty(&*watchlist)?;
+        self.storage.write(WATCHLIST_KEY, &bytes).await?;
+        Ok(saved)
+    }
+
+    pub async fn watchlist(&self) -> Vec<LibraryItem> {
+        self.watchlist.read().await.items().to_vec()
+    }
+
+    pub async fn in_watchlist(&self, meta_id: &str) -> bool {
+        self.watchlist.read().await.contains(meta_id)
+    }
+
     pub async fn save_progress(&self, update: ProgressUpdate) -> Result<(), AppError> {
-        let updated_at_ms = self
-            .clock
-            .now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
+        let updated_at_ms = self.now_ms();
         let progress = WatchProgress {
             meta_id: update.meta_id,
             video_id: update.video_id,

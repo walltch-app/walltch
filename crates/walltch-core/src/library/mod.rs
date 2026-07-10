@@ -74,6 +74,49 @@ impl ContinueWatching {
     }
 }
 
+/// Something the user explicitly saved to their library.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryItem {
+    pub meta_id: String,
+    pub r#type: String,
+    pub name: String,
+    #[serde(default)]
+    pub poster: Option<String>,
+    pub added_at_ms: u64,
+}
+
+/// The saved list, newest first. Unlike continue-watching this only changes
+/// when the user says so.
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Watchlist {
+    items: Vec<LibraryItem>,
+}
+
+impl Watchlist {
+    /// Add if absent, remove if present. Returns whether the item is saved
+    /// after the call.
+    pub fn toggle(&mut self, item: LibraryItem) -> bool {
+        if self.contains(&item.meta_id) {
+            self.items.retain(|i| i.meta_id != item.meta_id);
+            false
+        } else {
+            self.items.insert(0, item);
+            true
+        }
+    }
+
+    pub fn contains(&self, meta_id: &str) -> bool {
+        self.items.iter().any(|i| i.meta_id == meta_id)
+    }
+
+    pub fn items(&self) -> &[LibraryItem] {
+        &self.items
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,6 +170,29 @@ mod tests {
         assert_eq!(cw.entries().len(), 50);
         // The oldest ones fell off.
         assert!(cw.entries().iter().all(|e| e.meta_id != "tt0"));
+    }
+
+    #[test]
+    fn watchlist_toggles_and_keeps_newest_first() {
+        let mut list = Watchlist::default();
+        let item = |id: &str| LibraryItem {
+            meta_id: id.to_owned(),
+            r#type: "movie".to_owned(),
+            name: id.to_owned(),
+            poster: None,
+            added_at_ms: 0,
+        };
+
+        assert!(list.toggle(item("tt1")));
+        assert!(list.toggle(item("tt2")));
+        assert!(list.contains("tt1"));
+        let ids: Vec<&str> = list.items().iter().map(|i| i.meta_id.as_str()).collect();
+        assert_eq!(ids, ["tt2", "tt1"]);
+
+        // Toggling again removes.
+        assert!(!list.toggle(item("tt1")));
+        assert!(!list.contains("tt1"));
+        assert_eq!(list.items().len(), 1);
     }
 
     #[test]

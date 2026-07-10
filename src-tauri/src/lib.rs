@@ -32,6 +32,9 @@ pub fn run() {
             commands::list_continue_watching,
             commands::get_video_progress,
             commands::remove_continue_watching,
+            commands::toggle_watchlist,
+            commands::list_watchlist,
+            commands::in_watchlist,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

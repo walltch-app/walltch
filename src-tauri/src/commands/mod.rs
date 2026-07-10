@@ -4,12 +4,13 @@
 use tauri::State;
 use walltch_core::addon::{MetaDetail, MetaPreview, StreamSource};
 
-use walltch_core::library::WatchProgress;
+use walltch_core::library::{LibraryItem, WatchProgress};
 
 use crate::adapters::torrent::ResolvedStream;
 use crate::adapters::TorrentEngine;
 use crate::state::{
     AddonStream, AddonSubtitle, AppState, CatalogDescriptor, InstalledAddon, ProgressUpdate,
+    WatchlistToggle,
 };
 
 #[tauri::command]
@@ -65,6 +66,27 @@ pub async fn get_meta(
         .get_meta(&content_type, &id)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn toggle_watchlist(
+    state: State<'_, AppState>,
+    item: WatchlistToggle,
+) -> Result<bool, String> {
+    state
+        .toggle_watchlist(item)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn list_watchlist(state: State<'_, AppState>) -> Result<Vec<LibraryItem>, String> {
+    Ok(state.watchlist().await)
+}
+
+#[tauri::command]
+pub async fn in_watchlist(state: State<'_, AppState>, meta_id: String) -> Result<bool, String> {
+    Ok(state.in_watchlist(&meta_id).await)
 }
 
 #[tauri::command]

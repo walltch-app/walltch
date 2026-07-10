@@ -119,6 +119,39 @@
 	overflow: hidden;
 }
 
+.btn-save {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 16px;
+	padding: 8px 16px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	background: rgba(10, 13, 21, 0.5);
+	color: var(--text);
+	font-family: var(--font-body);
+	font-size: 0.85rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition:
+		border-color 120ms ease,
+		color 120ms ease;
+}
+
+.btn-save:hover {
+	border-color: var(--accent);
+}
+
+.btn-save svg {
+	width: 16px;
+	height: 16px;
+}
+
+.btn-saved {
+	border-color: var(--accent);
+	color: var(--accent-2);
+}
+
 /* ---- Body ---- */
 
 .detail-body {

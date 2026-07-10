@@ -6,11 +6,13 @@ import type { AddonStream } from "./bindings/AddonStream";
 import type { AddonSubtitle } from "./bindings/AddonSubtitle";
 import type { CatalogDescriptor } from "./bindings/CatalogDescriptor";
 import type { InstalledAddon } from "./bindings/InstalledAddon";
+import type { LibraryItem } from "./bindings/LibraryItem";
 import type { MetaDetail } from "./bindings/MetaDetail";
 import type { MetaPreview } from "./bindings/MetaPreview";
 import type { ProgressUpdate } from "./bindings/ProgressUpdate";
 import type { ResolvedStream } from "./bindings/ResolvedStream";
 import type { StreamSource } from "./bindings/StreamSource";
+import type { WatchlistToggle } from "./bindings/WatchlistToggle";
 import type { WatchProgress } from "./bindings/WatchProgress";
 
 export type ExtraProps = [name: string, value: string][];
@@ -79,4 +81,17 @@ export function getVideoProgress(
 
 export function removeContinueWatching(metaId: string): Promise<void> {
 	return invoke("remove_continue_watching", { metaId });
+}
+
+/** Resolves with whether the item is saved after the toggle. */
+export function toggleWatchlist(item: WatchlistToggle): Promise<boolean> {
+	return invoke("toggle_watchlist", { item });
+}
+
+export function listWatchlist(): Promise<LibraryItem[]> {
+	return invoke("list_watchlist");
+}
+
+export function inWatchlist(metaId: string): Promise<boolean> {
+	return invoke("in_watchlist", { metaId });
 }
