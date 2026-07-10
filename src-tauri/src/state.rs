@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::RwLock;
 use walltch_core::addon::{
-    AddonClient, AddonError, ExtraProp, Manifest, MetaDetail, MetaPreview, Stream,
+    AddonClient, AddonError, ExtraProp, Manifest, MetaDetail, MetaPreview, Stream, Subtitle,
 };
 use walltch_core::library::{ContinueWatching, WatchProgress};
 use walltch_core::ports::{Clock, HttpClient, Storage, StorageError};
@@ -63,6 +63,16 @@ pub struct AddonStream {
     pub addon_name: String,
     #[serde(flatten)]
     pub stream: Stream,
+}
+
+/// A subtitle annotated with which addon offered it.
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct AddonSubtitle {
+    pub addon_name: String,
+    #[serde(flatten)]
+    pub subtitle: Subtitle,
 }
 
 /// Fields the frontend reports while playing; the timestamp is added here.
@@ -225,6 +235,43 @@ impl AppState {
             content_type: content_type.to_owned(),
             id: id.to_owned(),
         })
+    }
+
+    /// Same fan-out as streams: every addon claiming subtitles for this
+    /// type/id is asked concurrently, failures are skipped.
+    pub async fn get_subtitles(
+        &self,
+        content_type: &str,
+        id: &str,
+    ) -> Result<Vec<AddonSubtitle>, AppError> {
+        let candidates: Vec<(String, String)> = self
+            .addons
+            .read()
+            .await
+            .iter()
+            .filter(|a| a.manifest.supports("subtitles", content_type, id))
+            .map(|a| (a.manifest.name.clone(), a.transport_url.clone()))
+            .collect();
+
+        let queries = candidates.into_iter().map(|(addon_name, transport_url)| {
+            let client = self.client(&transport_url);
+            async move {
+                let subtitles = client.subtitles(content_type, id, &[]).await.ok()?;
+                Some((addon_name, subtitles))
+            }
+        });
+
+        Ok(futures::future::join_all(queries)
+            .await
+            .into_iter()
+            .flatten()
+            .flat_map(|(addon_name, subtitles)| {
+                subtitles.into_iter().map(move |subtitle| AddonSubtitle {
+                    addon_name: addon_name.clone(),
+                    subtitle,
+                })
+            })
+            .collect())
     }
 
     pub async fn save_progress(&self, update: ProgressUpdate) -> Result<(), AppError> {
@@ -494,6 +541,39 @@ mod tests {
             .await
             .expect_err("unsupported prefix");
         assert!(matches!(err, AppError::NoAddonFor { .. }));
+    }
+
+    #[tokio::test]
+    async fn subtitles_are_collected_from_supporting_addons() {
+        let mut responses = manifests();
+        responses.push((
+            "https://subs.example/manifest.json".to_owned(),
+            (
+                200,
+                r#"{"id": "org.subs", "version": "1.0.0", "name": "Subs",
+                    "types": ["movie", "series"], "resources": ["subtitles"]}"#
+                    .to_owned(),
+            ),
+        ));
+        responses.push((
+            "https://subs.example/subtitles/movie/tt1.json".to_owned(),
+            (
+                200,
+                r#"{"subtitles": [{"id": "1", "url": "https://subs.example/1.srt", "lang": "tur"}]}"#
+                    .to_owned(),
+            ),
+        ));
+        let state = state_with(responses).await;
+        install_both(&state).await;
+        state
+            .install_addon("https://subs.example/manifest.json")
+            .await
+            .expect("install subs addon");
+
+        let subtitles = state.get_subtitles("movie", "tt1").await.expect("subs");
+        assert_eq!(subtitles.len(), 1);
+        assert_eq!(subtitles[0].addon_name, "Subs");
+        assert_eq!(subtitles[0].subtitle.lang, "tur");
     }
 
     #[tokio::test]

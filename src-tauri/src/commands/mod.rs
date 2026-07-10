@@ -8,7 +8,9 @@ use walltch_core::library::WatchProgress;
 
 use crate::adapters::torrent::ResolvedStream;
 use crate::adapters::TorrentEngine;
-use crate::state::{AddonStream, AppState, CatalogDescriptor, InstalledAddon, ProgressUpdate};
+use crate::state::{
+    AddonStream, AddonSubtitle, AppState, CatalogDescriptor, InstalledAddon, ProgressUpdate,
+};
 
 #[tauri::command]
 pub async fn install_addon(
@@ -61,6 +63,18 @@ pub async fn get_meta(
 ) -> Result<MetaDetail, String> {
     state
         .get_meta(&content_type, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_subtitles(
+    state: State<'_, AppState>,
+    content_type: String,
+    id: String,
+) -> Result<Vec<AddonSubtitle>, String> {
+    state
+        .get_subtitles(&content_type, &id)
         .await
         .map_err(|e| e.to_string())
 }

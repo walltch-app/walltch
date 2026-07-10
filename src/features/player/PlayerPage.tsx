@@ -1,4 +1,13 @@
-import { ArrowLeft, Pause, Play } from "lucide-react";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
+import {
+	ArrowLeft,
+	AudioLines,
+	Captions,
+	Check,
+	FolderOpen,
+	Pause,
+	Play,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -8,9 +17,16 @@ import {
 	type MpvConfig,
 	type MpvObservableProperty,
 	observeProperties,
+	setProperty,
 } from "tauri-plugin-libmpv-api";
-import { getVideoProgress, resolveStream, saveProgress } from "../../lib/api";
+import {
+	getSubtitles,
+	getVideoProgress,
+	resolveStream,
+	saveProgress,
+} from "../../lib/api";
 import type { AddonStream } from "../../lib/bindings/AddonStream";
+import type { AddonSubtitle } from "../../lib/bindings/AddonSubtitle";
 import "./player.css";
 
 /** What the detail page knows about the thing being played. */
@@ -36,7 +52,23 @@ const OBSERVED_PROPERTIES = [
 	["time-pos", "double", "none"],
 	["duration", "double", "none"],
 	["eof-reached", "flag", "none"],
+	["track-list", "node", "none"],
 ] as const satisfies MpvObservableProperty[];
+
+/** One entry of mpv's track-list property; only the fields we read. */
+type MpvTrack = {
+	id: number;
+	type: "audio" | "sub" | "video";
+	lang?: string | null;
+	title?: string | null;
+	selected?: boolean;
+	external?: boolean;
+};
+
+function trackLabel(track: MpvTrack) {
+	const name = track.title ?? `Track ${track.id}`;
+	return track.lang ? `${name} · ${track.lang}` : name;
+}
 
 const MPV_CONFIG: MpvConfig = {
 	initialOptions: {
@@ -97,6 +129,9 @@ function MpvPlayer({
 	const [paused, setPaused] = useState(false);
 	const [timePos, setTimePos] = useState(0);
 	const [duration, setDuration] = useState(0);
+	const [tracks, setTracks] = useState<MpvTrack[]>([]);
+	const [openMenu, setOpenMenu] = useState<"subs" | "audio" | null>(null);
+	const [addonSubs, setAddonSubs] = useState<AddonSubtitle[] | null>(null);
 	const resumeTargetRef = useRef<number | null>(null);
 	const resumeAppliedRef = useRef(false);
 	const { positionRef, durationRef, lastSavedRef, persist } =
@@ -162,6 +197,9 @@ function MpvPlayer({
 									persist();
 								}
 								break;
+							case "track-list":
+								setTracks(((data as MpvTrack[] | null) ?? []).filter(Boolean));
+								break;
 						}
 					},
 				);
@@ -205,12 +243,51 @@ function MpvPlayer({
 		return () => window.removeEventListener("keydown", onKey);
 	}, [togglePause]);
 
+	const subTracks = tracks.filter((t) => t.type === "sub");
+	const audioTracks = tracks.filter((t) => t.type === "audio");
+	const subtitlesOff = !subTracks.some((t) => t.selected);
+
+	const toggleSubsMenu = () => {
+		setOpenMenu((menu) => (menu === "subs" ? null : "subs"));
+		if (addonSubs === null && context) {
+			getSubtitles(context.contentType, context.videoId)
+				.then(setAddonSubs)
+				.catch(() => setAddonSubs([]));
+		}
+	};
+
+	const addAddonSubtitle = (sub: AddonSubtitle) => {
+		command("sub-add", [
+			sub.url,
+			"select",
+			`${sub.lang} (${sub.addonName})`,
+			sub.lang,
+		]).catch(() => {});
+		setOpenMenu(null);
+	};
+
+	const addLocalSubtitle = async () => {
+		setOpenMenu(null);
+		const file = await openFileDialog({
+			multiple: false,
+			filters: [
+				{ name: "Subtitles", extensions: ["srt", "ass", "ssa", "sub", "vtt"] },
+			],
+		}).catch(() => null);
+		if (typeof file === "string") {
+			command("sub-add", [file, "select"]).catch(() => {});
+		}
+	};
+
 	return (
 		<>
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-pause convenience; the button below is the accessible control */}
 			<div
 				className="player-click-layer"
-				onClick={togglePause}
+				onClick={() => {
+					if (openMenu) setOpenMenu(null);
+					else togglePause();
+				}}
 				onKeyDown={() => {}}
 			/>
 			<div className="player-controls">
@@ -235,6 +312,101 @@ function MpvPlayer({
 					aria-label="Seek"
 				/>
 				<span className="control-time">{formatTime(duration)}</span>
+
+				{audioTracks.length > 1 && (
+					<div className="menu-anchor">
+						<button
+							type="button"
+							className="control-btn"
+							onClick={() =>
+								setOpenMenu((menu) => (menu === "audio" ? null : "audio"))
+							}
+							aria-label="Audio track"
+							aria-expanded={openMenu === "audio"}
+						>
+							<AudioLines aria-hidden />
+						</button>
+						{openMenu === "audio" && (
+							<div className="track-menu" role="menu">
+								{audioTracks.map((track) => (
+									<button
+										type="button"
+										key={track.id}
+										onClick={() => {
+											setProperty("aid", track.id).catch(() => {});
+											setOpenMenu(null);
+										}}
+									>
+										<span>{trackLabel(track)}</span>
+										{track.selected && <Check aria-hidden />}
+									</button>
+								))}
+							</div>
+						)}
+					</div>
+				)}
+
+				<div className="menu-anchor">
+					<button
+						type="button"
+						className="control-btn"
+						onClick={toggleSubsMenu}
+						aria-label="Subtitles"
+						aria-expanded={openMenu === "subs"}
+					>
+						<Captions aria-hidden />
+					</button>
+					{openMenu === "subs" && (
+						<div className="track-menu" role="menu">
+							<button
+								type="button"
+								onClick={() => {
+									setProperty("sid", "no").catch(() => {});
+									setOpenMenu(null);
+								}}
+							>
+								<span>Off</span>
+								{subtitlesOff && <Check aria-hidden />}
+							</button>
+							{subTracks.map((track) => (
+								<button
+									type="button"
+									key={track.id}
+									onClick={() => {
+										setProperty("sid", track.id).catch(() => {});
+										setOpenMenu(null);
+									}}
+								>
+									<span>{trackLabel(track)}</span>
+									{track.selected && <Check aria-hidden />}
+								</button>
+							))}
+							{addonSubs && addonSubs.length > 0 && (
+								<>
+									<div className="menu-section">From addons</div>
+									{addonSubs.map((sub) => (
+										<button
+											type="button"
+											key={`${sub.addonName}-${sub.id ?? sub.url}`}
+											onClick={() => addAddonSubtitle(sub)}
+										>
+											<span>
+												{sub.lang} · {sub.addonName}
+											</span>
+										</button>
+									))}
+								</>
+							)}
+							{addonSubs === null && context && (
+								<div className="menu-section">Loading addon subtitles…</div>
+							)}
+							<button type="button" onClick={addLocalSubtitle}>
+								<span>Load subtitle file…</span>
+								<FolderOpen aria-hidden />
+							</button>
+						</div>
+					)}
+				</div>
 			</div>
 		</>
 	);

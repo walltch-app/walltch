@@ -3,6 +3,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import type { AddonStream } from "./bindings/AddonStream";
+import type { AddonSubtitle } from "./bindings/AddonSubtitle";
 import type { CatalogDescriptor } from "./bindings/CatalogDescriptor";
 import type { InstalledAddon } from "./bindings/InstalledAddon";
 import type { MetaDetail } from "./bindings/MetaDetail";
@@ -48,6 +49,13 @@ export function getStreams(
 	id: string,
 ): Promise<AddonStream[]> {
 	return invoke("get_streams", { contentType, id });
+}
+
+export function getSubtitles(
+	contentType: string,
+	id: string,
+): Promise<AddonSubtitle[]> {
+	return invoke("get_subtitles", { contentType, id });
 }
 
 /** Streams carry extra display fields; the command only reads the source. */

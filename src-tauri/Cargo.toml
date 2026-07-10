@@ -36,6 +36,7 @@ librqbit = { version = "8", features = ["http-api", "tracing-subscriber-utils"] 
 anyhow = "1.0.103"
 percent-encoding = "2"
 tauri-plugin-libmpv = "0.3.2"
+tauri-plugin-dialog = "2.7.1"
 
 [dev-dependencies]
 tempfile = "3"

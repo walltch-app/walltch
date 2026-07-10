@@ -9,6 +9,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_libmpv::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             let state =
@@ -25,6 +26,7 @@ pub fn run() {
             commands::get_catalog,
             commands::get_meta,
             commands::get_streams,
+            commands::get_subtitles,
             commands::resolve_stream,
             commands::save_progress,
             commands::list_continue_watching,
