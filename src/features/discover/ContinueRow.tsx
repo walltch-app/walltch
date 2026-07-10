@@ -1,13 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ContinueCard } from "../../components/ContinueCard";
 import { listContinueWatching, removeContinueWatching } from "../../lib/api";
 import type { WatchProgress } from "../../lib/bindings/WatchProgress";
-import { PosterStrip } from "./CatalogRow";
+import {
+	PosterStrip,
+	RowArrows,
+	type StripEdges,
+	type StripHandle,
+} from "./CatalogRow";
 import "../library/library.css";
 
 /** Where you left off, right on the board. Hidden while empty. */
 function ContinueRow() {
 	const [entries, setEntries] = useState<WatchProgress[] | null>(null);
+	const stripRef = useRef<StripHandle>(null);
+	const [edges, setEdges] = useState<StripEdges>({ left: false, right: false });
 
 	const refresh = useCallback(() => {
 		listContinueWatching()
@@ -25,8 +32,9 @@ function ContinueRow() {
 		<section className="catalog-row">
 			<header>
 				<h2>Continue watching</h2>
+				<RowArrows strip={stripRef} edges={edges} />
 			</header>
-			<PosterStrip>
+			<PosterStrip ref={stripRef} onEdges={setEdges}>
 				{entries.map((entry) => (
 					<ContinueCard
 						key={entry.metaId}

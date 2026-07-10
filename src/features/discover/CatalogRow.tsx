@@ -1,5 +1,14 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	forwardRef,
+	type ReactNode,
+	type RefObject,
+	useCallback,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
 import { Link, useNavigate } from "react-router";
 import { getCatalog } from "../../lib/api";
 import type { CatalogDescriptor } from "../../lib/bindings/CatalogDescriptor";
@@ -28,16 +37,60 @@ export function PosterCard({ meta }: { meta: MetaPreview }) {
 
 const SKELETON_KEYS = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
-export function PosterStrip({ children }: { children: React.ReactNode }) {
+export type StripHandle = {
+	nudge: (direction: -1 | 1) => void;
+};
+
+export type StripEdges = { left: boolean; right: boolean };
+
+/** Small circular arrows for a row header, wired to a PosterStrip. */
+export function RowArrows({
+	strip,
+	edges,
+}: {
+	strip: RefObject<StripHandle | null>;
+	edges: StripEdges;
+}) {
+	if (!edges.left && !edges.right) return null;
+	return (
+		<div className="row-actions">
+			<button
+				type="button"
+				className="row-arrow"
+				disabled={!edges.left}
+				onClick={() => strip.current?.nudge(-1)}
+				aria-label="Scroll left"
+			>
+				<ChevronLeft aria-hidden />
+			</button>
+			<button
+				type="button"
+				className="row-arrow"
+				disabled={!edges.right}
+				onClick={() => strip.current?.nudge(1)}
+				aria-label="Scroll right"
+			>
+				<ChevronRight aria-hidden />
+			</button>
+		</div>
+	);
+}
+
+export const PosterStrip = forwardRef<
+	StripHandle,
+	{ children: ReactNode; onEdges?: (edges: StripEdges) => void }
+>(function PosterStrip({ children, onEdges }, ref) {
 	const stripRef = useRef<HTMLDivElement>(null);
-	const [canLeft, setCanLeft] = useState(false);
-	const [canRight, setCanRight] = useState(false);
+	const onEdgesRef = useRef(onEdges);
+	onEdgesRef.current = onEdges;
 
 	const updateArrows = useCallback(() => {
 		const el = stripRef.current;
 		if (!el) return;
-		setCanLeft(el.scrollLeft > 4);
-		setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+		onEdgesRef.current?.({
+			left: el.scrollLeft > 4,
+			right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
+		});
 	}, []);
 
 	// Content size changes (posters loading in) should re-evaluate arrows.
@@ -94,42 +147,28 @@ export function PosterStrip({ children }: { children: React.ReactNode }) {
 		};
 	}, []);
 
-	const nudge = (direction: -1 | 1) => {
-		const el = stripRef.current;
-		el?.scrollBy({
-			left: direction * el.clientWidth * 0.85,
-			behavior: "smooth",
-		});
-	};
+	useImperativeHandle(
+		ref,
+		() => ({
+			nudge: (direction: -1 | 1) => {
+				const el = stripRef.current;
+				el?.scrollBy({
+					left: direction * el.clientWidth * 0.85,
+					behavior: "smooth",
+				});
+			},
+		}),
+		[],
+	);
 
 	return (
 		<div className="strip-wrap">
 			<div className="poster-strip" ref={stripRef} onScroll={updateArrows}>
 				{children}
 			</div>
-			{canLeft && (
-				<button
-					type="button"
-					className="strip-nav strip-nav-left"
-					onClick={() => nudge(-1)}
-					aria-label="Scroll left"
-				>
-					<ChevronLeft aria-hidden />
-				</button>
-			)}
-			{canRight && (
-				<button
-					type="button"
-					className="strip-nav strip-nav-right"
-					onClick={() => nudge(1)}
-					aria-label="Scroll right"
-				>
-					<ChevronRight aria-hidden />
-				</button>
-			)}
 		</div>
 	);
-}
+});
 
 function CatalogRow({ catalog }: { catalog: CatalogDescriptor }) {
 	const navigate = useNavigate();
@@ -137,6 +176,8 @@ function CatalogRow({ catalog }: { catalog: CatalogDescriptor }) {
 	const [failed, setFailed] = useState(false);
 	const [visible, setVisible] = useState(false);
 	const rowRef = useRef<HTMLElement>(null);
+	const stripRef = useRef<StripHandle>(null);
+	const [edges, setEdges] = useState<StripEdges>({ left: false, right: false });
 
 	// Only hit the addon once the row is close to the viewport, so a long
 	// board doesn't fire every catalog request at startup.
@@ -177,13 +218,14 @@ function CatalogRow({ catalog }: { catalog: CatalogDescriptor }) {
 					<ChevronRight aria-hidden />
 				</button>
 				<span className="row-chip">{catalog.type}</span>
+				<RowArrows strip={stripRef} edges={edges} />
 			</header>
 			{failed ? (
 				<p className="row-note">This catalog didn't answer. It may be down.</p>
 			) : metas?.length === 0 ? (
 				<p className="row-note">This catalog is empty right now.</p>
 			) : (
-				<PosterStrip>
+				<PosterStrip ref={stripRef} onEdges={setEdges}>
 					{metas
 						? metas.map((meta) => <PosterCard key={meta.id} meta={meta} />)
 						: SKELETON_KEYS.map((key) => (

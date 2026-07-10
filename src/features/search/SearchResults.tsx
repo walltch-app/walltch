@@ -3,7 +3,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCatalog, listCatalogs } from "../../lib/api";
 import type { CatalogDescriptor } from "../../lib/bindings/CatalogDescriptor";
 import type { MetaPreview } from "../../lib/bindings/MetaPreview";
-import { PosterCard, PosterStrip } from "../discover/CatalogRow";
+import {
+	PosterCard,
+	PosterStrip,
+	RowArrows,
+	type StripEdges,
+	type StripHandle,
+} from "../discover/CatalogRow";
 import "./search.css";
 
 type ResultRow = {
@@ -13,6 +19,32 @@ type ResultRow = {
 
 function searchable(catalogs: CatalogDescriptor[]) {
 	return catalogs.filter((c) => c.extra.some((e) => e.name === "search"));
+}
+
+function ResultRowSection({
+	type,
+	metas,
+}: {
+	type: string;
+	metas: MetaPreview[];
+}) {
+	const stripRef = useRef<StripHandle>(null);
+	const [edges, setEdges] = useState<StripEdges>({ left: false, right: false });
+
+	return (
+		<section className="catalog-row">
+			<header>
+				<h2>{type}</h2>
+				<span className="row-meta">{metas.length} results</span>
+				<RowArrows strip={stripRef} edges={edges} />
+			</header>
+			<PosterStrip ref={stripRef} onEdges={setEdges}>
+				{metas.map((meta) => (
+					<PosterCard key={`${meta.type}:${meta.id}`} meta={meta} />
+				))}
+			</PosterStrip>
+		</section>
+	);
 }
 
 /** Inline search results: every addon catalog that supports the search
@@ -86,17 +118,7 @@ function SearchResults({ query }: { query: string }) {
 			)}
 
 			{grouped?.map(([type, metas]) => (
-				<section key={type} className="catalog-row">
-					<header>
-						<h2>{type}</h2>
-						<span className="row-meta">{metas.length} results</span>
-					</header>
-					<PosterStrip>
-						{metas.map((meta) => (
-							<PosterCard key={`${meta.type}:${meta.id}`} meta={meta} />
-						))}
-					</PosterStrip>
-				</section>
+				<ResultRowSection key={type} type={type} metas={metas} />
 			))}
 		</>
 	);

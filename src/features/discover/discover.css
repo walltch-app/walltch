@@ -121,7 +121,7 @@
 
 .catalog-row header {
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	gap: 10px;
 	margin-bottom: 16px;
 }
@@ -203,47 +203,41 @@
 	display: none;
 }
 
-.strip-nav {
-	position: absolute;
-	top: 50%;
-	transform: translateY(-70%);
-	z-index: 2;
+/* Header arrows, mock style: small circles on the row's right edge. */
+.row-actions {
+	display: flex;
+	gap: 6px;
+	margin-left: auto;
+}
+
+.row-arrow {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 38px;
-	height: 38px;
+	width: 28px;
+	height: 28px;
 	border: 1px solid var(--line);
 	border-radius: 50%;
-	background: rgba(13, 17, 27, 0.88);
+	background: color-mix(in srgb, var(--surface) 80%, transparent);
 	color: var(--text);
 	cursor: pointer;
-	opacity: 0;
 	transition:
-		opacity 140ms ease,
-		border-color 140ms ease;
+		border-color 130ms ease,
+		opacity 130ms ease;
 }
 
-.strip-wrap:hover .strip-nav,
-.strip-nav:focus-visible {
-	opacity: 1;
-}
-
-.strip-nav:hover {
+.row-arrow:hover:not(:disabled) {
 	border-color: var(--accent);
 }
 
-.strip-nav svg {
-	width: 20px;
-	height: 20px;
+.row-arrow:disabled {
+	opacity: 0.3;
+	cursor: default;
 }
 
-.strip-nav-left {
-	left: -12px;
-}
-
-.strip-nav-right {
-	right: -12px;
+.row-arrow svg {
+	width: 16px;
+	height: 16px;
 }
 
 .poster {
