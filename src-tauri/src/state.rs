@@ -16,6 +16,7 @@ use crate::adapters::{FsStorage, ReqwestHttpClient, SystemClock};
 const ADDONS_KEY: &str = "addons.json";
 const LIBRARY_KEY: &str = "library.json";
 const WATCHLIST_KEY: &str = "watchlist.json";
+const SETTINGS_KEY: &str = "settings.json";
 
 #[derive(Debug, Error)]
 pub enum AppError {
@@ -76,6 +77,27 @@ pub struct AddonSubtitle {
     pub subtitle: Subtitle,
 }
 
+/// User preferences. `default` on the container keeps old settings files
+/// working when new fields appear.
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Settings {
+    /// Accent preset id; the frontend maps it to concrete colors.
+    pub accent: String,
+    /// Prefer the embedded mpv over the webview <video> element.
+    pub use_mpv: bool,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            accent: "walltch-blue".to_owned(),
+            use_mpv: true,
+        }
+    }
+}
+
 /// What the frontend knows when toggling a library item; the timestamp is
 /// added here.
 #[derive(Debug, Deserialize, ts_rs::TS)]
@@ -109,6 +131,7 @@ pub struct AppState {
     addons: RwLock<Vec<InstalledAddon>>,
     library: RwLock<ContinueWatching>,
     watchlist: RwLock<Watchlist>,
+    settings: RwLock<Settings>,
 }
 
 impl AppState {
@@ -143,6 +166,7 @@ impl AppState {
         let addons: Vec<InstalledAddon> = Self::read_or_default(&*storage, ADDONS_KEY).await?;
         let library: ContinueWatching = Self::read_or_default(&*storage, LIBRARY_KEY).await?;
         let watchlist: Watchlist = Self::read_or_default(&*storage, WATCHLIST_KEY).await?;
+        let settings: Settings = Self::read_or_default(&*storage, SETTINGS_KEY).await?;
         Ok(Self {
             http,
             storage,
@@ -150,7 +174,33 @@ impl AppState {
             addons: RwLock::new(addons),
             library: RwLock::new(library),
             watchlist: RwLock::new(watchlist),
+            settings: RwLock::new(settings),
         })
+    }
+
+    pub async fn settings(&self) -> Settings {
+        self.settings.read().await.clone()
+    }
+
+    pub async fn set_settings(&self, settings: Settings) -> Result<(), AppError> {
+        let bytes = serde_json::to_vec_pretty(&settings)?;
+        self.storage.write(SETTINGS_KEY, &bytes).await?;
+        *self.settings.write().await = settings;
+        Ok(())
+    }
+
+    /// Reorder installed addons to match the given transport urls; addons
+    /// not mentioned keep their relative order at the end.
+    pub async fn reorder_addons(&self, order: Vec<String>) -> Result<(), AppError> {
+        let mut addons = self.addons.write().await;
+        let position = |a: &InstalledAddon| {
+            order
+                .iter()
+                .position(|url| url == &a.transport_url)
+                .unwrap_or(usize::MAX)
+        };
+        addons.sort_by_key(position);
+        self.persist(&addons).await
     }
 
     fn now_ms(&self) -> u64 {
@@ -584,6 +634,44 @@ mod tests {
             .await
             .expect_err("unsupported prefix");
         assert!(matches!(err, AppError::NoAddonFor { .. }));
+    }
+
+    #[tokio::test]
+    async fn settings_round_trip_and_addons_reorder() {
+        let http = Arc::new(FakeHttp(manifests().into_iter().collect()));
+        let storage = Arc::new(MemoryStorage::default());
+        let state = AppState::load(http.clone(), storage.clone(), Arc::new(FixedClock))
+            .await
+            .expect("load");
+
+        assert_eq!(state.settings().await.accent, "walltch-blue");
+        let mut settings = state.settings().await;
+        settings.accent = "emerald".to_owned();
+        settings.use_mpv = false;
+        state.set_settings(settings).await.expect("save settings");
+
+        install_both(&state).await;
+        state
+            .reorder_addons(vec![
+                format!("{TORRENTIO}/manifest.json"),
+                format!("{CINEMETA}/manifest.json"),
+            ])
+            .await
+            .expect("reorder");
+
+        // Everything comes back after a restart, in the new order.
+        let state = AppState::load(http, storage, Arc::new(FixedClock))
+            .await
+            .expect("reload");
+        assert_eq!(state.settings().await.accent, "emerald");
+        assert!(!state.settings().await.use_mpv);
+        let names: Vec<String> = state
+            .list_addons()
+            .await
+            .iter()
+            .map(|a| a.manifest.name.clone())
+            .collect();
+        assert_eq!(names, ["Torrentio", "Cinemeta"]);
     }
 
     #[tokio::test]

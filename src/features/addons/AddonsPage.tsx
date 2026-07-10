@@ -1,6 +1,11 @@
-import { Puzzle, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Puzzle, Trash2 } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { installAddon, listAddons, uninstallAddon } from "../../lib/api";
+import {
+	installAddon,
+	listAddons,
+	reorderAddons,
+	uninstallAddon,
+} from "../../lib/api";
 import type { InstalledAddon } from "../../lib/bindings/InstalledAddon";
 import type { Manifest } from "../../lib/bindings/Manifest";
 import "./addons.css";
@@ -57,6 +62,22 @@ function AddonsPage() {
 		}
 	}
 
+	/** Order matters: metadata and streams are asked for in list order. */
+	async function onMove(index: number, delta: -1 | 1) {
+		if (!addons) return;
+		const target = index + delta;
+		if (target < 0 || target >= addons.length) return;
+		const next = [...addons];
+		[next[index], next[target]] = [next[target], next[index]];
+		setAddons(next);
+		try {
+			await reorderAddons(next.map((a) => a.transportUrl));
+		} catch (e) {
+			setError(String(e));
+			await refresh();
+		}
+	}
+
 	return (
 		<div className="page">
 			<h1 className="page-title">Addons</h1>
@@ -87,7 +108,7 @@ function AddonsPage() {
 			)}
 
 			<ul className="addon-list">
-				{addons?.map((addon) => (
+				{addons?.map((addon, index) => (
 					<li key={addon.transportUrl} className="addon-card">
 						{addon.manifest.logo ? (
 							<img className="addon-logo" src={addon.manifest.logo} alt="" />
@@ -112,14 +133,36 @@ function AddonsPage() {
 								))}
 							</div>
 						</div>
-						<button
-							type="button"
-							className="btn-remove"
-							onClick={() => onRemove(addon.transportUrl)}
-						>
-							<Trash2 aria-hidden />
-							Remove
-						</button>
+						<div className="addon-actions">
+							<div className="order-buttons">
+								<button
+									type="button"
+									className="btn-order"
+									onClick={() => onMove(index, -1)}
+									disabled={index === 0}
+									aria-label={`Move ${addon.manifest.name} up`}
+								>
+									<ChevronUp aria-hidden />
+								</button>
+								<button
+									type="button"
+									className="btn-order"
+									onClick={() => onMove(index, 1)}
+									disabled={addons !== null && index === addons.length - 1}
+									aria-label={`Move ${addon.manifest.name} down`}
+								>
+									<ChevronDown aria-hidden />
+								</button>
+							</div>
+							<button
+								type="button"
+								className="btn-remove"
+								onClick={() => onRemove(addon.transportUrl)}
+							>
+								<Trash2 aria-hidden />
+								Remove
+							</button>
+						</div>
 					</li>
 				))}
 			</ul>

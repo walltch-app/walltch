@@ -1,0 +1,68 @@
+.settings-section {
+	margin-top: 36px;
+	max-width: 640px;
+}
+
+.settings-section h2 {
+	font-family: var(--font-display);
+	font-size: 1.1rem;
+	font-weight: 600;
+}
+
+.settings-hint {
+	margin-top: 2px;
+	color: var(--muted);
+	font-size: 0.85rem;
+}
+
+.accent-row {
+	display: flex;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.accent-swatch {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 42px;
+	height: 42px;
+	border: 2px solid transparent;
+	border-radius: 50%;
+	color: #fff;
+	cursor: pointer;
+	transition: transform 120ms ease;
+}
+
+.accent-swatch:hover {
+	transform: scale(1.08);
+}
+
+.accent-active {
+	border-color: var(--text);
+}
+
+.accent-swatch svg {
+	width: 18px;
+	height: 18px;
+}
+
+.settings-toggle {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	margin-top: 16px;
+	cursor: pointer;
+}
+
+.settings-toggle input {
+	margin-top: 4px;
+	width: 16px;
+	height: 16px;
+	accent-color: var(--accent);
+	cursor: pointer;
+}
+
+.settings-toggle span {
+	font-weight: 500;
+}

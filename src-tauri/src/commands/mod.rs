@@ -10,7 +10,7 @@ use crate::adapters::torrent::ResolvedStream;
 use crate::adapters::TorrentEngine;
 use crate::state::{
     AddonStream, AddonSubtitle, AppState, CatalogDescriptor, InstalledAddon, ProgressUpdate,
-    WatchlistToggle,
+    Settings, WatchlistToggle,
 };
 
 #[tauri::command]
@@ -66,6 +66,24 @@ pub async fn get_meta(
         .get_meta(&content_type, &id)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_settings(state: State<'_, AppState>) -> Result<Settings, String> {
+    Ok(state.settings().await)
+}
+
+#[tauri::command]
+pub async fn set_settings(state: State<'_, AppState>, settings: Settings) -> Result<(), String> {
+    state
+        .set_settings(settings)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn reorder_addons(state: State<'_, AppState>, order: Vec<String>) -> Result<(), String> {
+    state.reorder_addons(order).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]

@@ -35,6 +35,9 @@ pub fn run() {
             commands::toggle_watchlist,
             commands::list_watchlist,
             commands::in_watchlist,
+            commands::get_settings,
+            commands::set_settings,
+            commands::reorder_addons,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

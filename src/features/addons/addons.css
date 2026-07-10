@@ -127,11 +127,47 @@
 	letter-spacing: 0.02em;
 }
 
+.addon-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-left: auto;
+	flex-shrink: 0;
+}
+
+.order-buttons {
+	display: flex;
+	flex-direction: column;
+}
+
+.btn-order {
+	display: flex;
+	padding: 1px 4px;
+	border: 0;
+	background: transparent;
+	color: var(--muted);
+	cursor: pointer;
+	transition: color 120ms ease;
+}
+
+.btn-order:hover:not(:disabled) {
+	color: var(--text);
+}
+
+.btn-order:disabled {
+	opacity: 0.3;
+	cursor: default;
+}
+
+.btn-order svg {
+	width: 16px;
+	height: 16px;
+}
+
 .btn-remove {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	margin-left: auto;
 	flex-shrink: 0;
 	padding: 7px 12px;
 	background: transparent;

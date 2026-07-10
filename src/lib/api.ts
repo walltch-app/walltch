@@ -11,6 +11,7 @@ import type { MetaDetail } from "./bindings/MetaDetail";
 import type { MetaPreview } from "./bindings/MetaPreview";
 import type { ProgressUpdate } from "./bindings/ProgressUpdate";
 import type { ResolvedStream } from "./bindings/ResolvedStream";
+import type { Settings } from "./bindings/Settings";
 import type { StreamSource } from "./bindings/StreamSource";
 import type { WatchlistToggle } from "./bindings/WatchlistToggle";
 import type { WatchProgress } from "./bindings/WatchProgress";
@@ -94,4 +95,17 @@ export function listWatchlist(): Promise<LibraryItem[]> {
 
 export function inWatchlist(metaId: string): Promise<boolean> {
 	return invoke("in_watchlist", { metaId });
+}
+
+export function getSettings(): Promise<Settings> {
+	return invoke("get_settings");
+}
+
+export function setSettings(settings: Settings): Promise<void> {
+	return invoke("set_settings", { settings });
+}
+
+/** Full order of transport urls; addons are resolved in this order. */
+export function reorderAddons(order: string[]): Promise<void> {
+	return invoke("reorder_addons", { order });
 }

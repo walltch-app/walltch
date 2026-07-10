@@ -26,6 +26,7 @@ import {
 	setProperty,
 } from "tauri-plugin-libmpv-api";
 import {
+	getSettings,
 	getSubtitles,
 	getVideoProgress,
 	resolveStream,
@@ -641,6 +642,11 @@ function PlayerPage() {
 		let active = true;
 		(async () => {
 			try {
+				const settings = await getSettings().catch(() => null);
+				if (settings && !settings.useMpv) {
+					if (active) setMpvReady(false);
+					return;
+				}
 				// A leftover instance from a previous session would make init fail.
 				await destroy().catch(() => {});
 				await init(MPV_CONFIG);
