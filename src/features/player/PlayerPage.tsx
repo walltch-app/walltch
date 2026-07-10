@@ -1,3 +1,4 @@
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import {
 	ArrowLeft,
@@ -5,8 +6,13 @@ import {
 	Captions,
 	Check,
 	FolderOpen,
+	Gauge,
+	Maximize,
+	Minimize,
 	Pause,
 	Play,
+	Volume2,
+	VolumeX,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
@@ -53,7 +59,12 @@ const OBSERVED_PROPERTIES = [
 	["duration", "double", "none"],
 	["eof-reached", "flag", "none"],
 	["track-list", "node", "none"],
+	["volume", "double"],
+	["mute", "flag"],
+	["speed", "double"],
 ] as const satisfies MpvObservableProperty[];
+
+const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 /** One entry of mpv's track-list property; only the fields we read. */
 type MpvTrack = {
@@ -130,8 +141,14 @@ function MpvPlayer({
 	const [timePos, setTimePos] = useState(0);
 	const [duration, setDuration] = useState(0);
 	const [tracks, setTracks] = useState<MpvTrack[]>([]);
-	const [openMenu, setOpenMenu] = useState<"subs" | "audio" | null>(null);
+	const [openMenu, setOpenMenu] = useState<"subs" | "audio" | "speed" | null>(
+		null,
+	);
 	const [addonSubs, setAddonSubs] = useState<AddonSubtitle[] | null>(null);
+	const [volume, setVolume] = useState(100);
+	const [muted, setMuted] = useState(false);
+	const [speed, setSpeed] = useState(1);
+	const [fullscreen, setFullscreen] = useState(false);
 	const resumeTargetRef = useRef<number | null>(null);
 	const resumeAppliedRef = useRef(false);
 	const { positionRef, durationRef, lastSavedRef, persist } =
@@ -200,6 +217,15 @@ function MpvPlayer({
 							case "track-list":
 								setTracks(((data as MpvTrack[] | null) ?? []).filter(Boolean));
 								break;
+							case "volume":
+								setVolume(data);
+								break;
+							case "mute":
+								setMuted(data);
+								break;
+							case "speed":
+								setSpeed(data);
+								break;
 						}
 					},
 				);
@@ -228,20 +254,62 @@ function MpvPlayer({
 		[positionRef],
 	);
 
+	const toggleMute = useCallback(() => {
+		command("cycle", ["mute"]).catch(() => {});
+	}, []);
+
+	const toggleFullscreen = useCallback(async () => {
+		try {
+			const win = getCurrentWindow();
+			const next = !(await win.isFullscreen());
+			await win.setFullscreen(next);
+			setFullscreen(next);
+		} catch {
+			// Fullscreen is a nicety; ignore if the window API refuses.
+		}
+	}, []);
+
+	// Leaving the player shouldn't leave the app stuck in fullscreen.
+	useEffect(() => {
+		return () => {
+			getCurrentWindow()
+				.setFullscreen(false)
+				.catch(() => {});
+		};
+	}, []);
+
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
-			if (event.key === " ") {
-				event.preventDefault();
-				togglePause();
-			} else if (event.key === "ArrowRight") {
-				command("seek", [10, "relative"]).catch(() => {});
-			} else if (event.key === "ArrowLeft") {
-				command("seek", [-10, "relative"]).catch(() => {});
+			switch (event.key) {
+				case " ":
+					event.preventDefault();
+					togglePause();
+					break;
+				case "ArrowRight":
+					command("seek", [10, "relative"]).catch(() => {});
+					break;
+				case "ArrowLeft":
+					command("seek", [-10, "relative"]).catch(() => {});
+					break;
+				case "ArrowUp":
+					event.preventDefault();
+					command("add", ["volume", 5]).catch(() => {});
+					break;
+				case "ArrowDown":
+					event.preventDefault();
+					command("add", ["volume", -5]).catch(() => {});
+					break;
+				case "m":
+					toggleMute();
+					break;
+				case "f":
+					toggleFullscreen();
+					break;
 			}
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-	}, [togglePause]);
+	}, [togglePause, toggleMute, toggleFullscreen]);
 
 	const subTracks = tracks.filter((t) => t.type === "sub");
 	const audioTracks = tracks.filter((t) => t.type === "audio");
@@ -288,6 +356,7 @@ function MpvPlayer({
 					if (openMenu) setOpenMenu(null);
 					else togglePause();
 				}}
+				onDoubleClick={toggleFullscreen}
 				onKeyDown={() => {}}
 			/>
 			<div className="player-controls">
@@ -312,6 +381,65 @@ function MpvPlayer({
 					aria-label="Seek"
 				/>
 				<span className="control-time">{formatTime(duration)}</span>
+
+				<button
+					type="button"
+					className="control-btn"
+					onClick={toggleMute}
+					aria-label={muted ? "Unmute" : "Mute"}
+				>
+					{muted || volume === 0 ? (
+						<VolumeX aria-hidden />
+					) : (
+						<Volume2 aria-hidden />
+					)}
+				</button>
+				<input
+					type="range"
+					className="control-seek control-volume"
+					min={0}
+					max={100}
+					step={1}
+					value={muted ? 0 : Math.round(volume)}
+					onChange={(e) => {
+						setProperty("volume", Number(e.currentTarget.value)).catch(
+							() => {},
+						);
+						if (muted) setProperty("mute", false).catch(() => {});
+					}}
+					aria-label="Volume"
+				/>
+
+				<div className="menu-anchor">
+					<button
+						type="button"
+						className="control-btn"
+						onClick={() =>
+							setOpenMenu((menu) => (menu === "speed" ? null : "speed"))
+						}
+						aria-label="Playback speed"
+						aria-expanded={openMenu === "speed"}
+					>
+						<Gauge aria-hidden />
+					</button>
+					{openMenu === "speed" && (
+						<div className="track-menu" role="menu">
+							{SPEED_OPTIONS.map((option) => (
+								<button
+									type="button"
+									key={option}
+									onClick={() => {
+										setProperty("speed", option).catch(() => {});
+										setOpenMenu(null);
+									}}
+								>
+									<span>{option}×</span>
+									{Math.abs(speed - option) < 0.01 && <Check aria-hidden />}
+								</button>
+							))}
+						</div>
+					)}
+				</div>
 
 				{audioTracks.length > 1 && (
 					<div className="menu-anchor">
@@ -407,6 +535,15 @@ function MpvPlayer({
 						</div>
 					)}
 				</div>
+
+				<button
+					type="button"
+					className="control-btn"
+					onClick={toggleFullscreen}
+					aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+				>
+					{fullscreen ? <Minimize aria-hidden /> : <Maximize aria-hidden />}
+				</button>
 			</div>
 		</>
 	);

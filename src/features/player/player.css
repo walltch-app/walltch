@@ -131,6 +131,10 @@
 	opacity: 0.4;
 }
 
+.control-volume {
+	flex: 0 0 86px;
+}
+
 .menu-anchor {
 	position: relative;
 }
