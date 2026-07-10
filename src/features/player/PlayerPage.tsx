@@ -11,10 +11,18 @@ import {
 	Minimize,
 	Pause,
 	Play,
+	RotateCcw,
+	RotateCw,
 	Volume2,
 	VolumeX,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	type PointerEvent as ReactPointerEvent,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
 	command,
@@ -53,6 +61,7 @@ export type PlayerLocationState = {
 
 const SAVE_EVERY_SECS = 10;
 const MIN_POSITION_SECS = 10;
+const CONTROLS_IDLE_MS = 2600;
 
 const OBSERVED_PROPERTIES = [
 	["pause", "flag"],
@@ -63,6 +72,8 @@ const OBSERVED_PROPERTIES = [
 	["volume", "double"],
 	["mute", "flag"],
 	["speed", "double"],
+	["paused-for-cache", "flag", "none"],
+	["demuxer-cache-time", "double", "none"],
 ] as const satisfies MpvObservableProperty[];
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -128,19 +139,106 @@ function useProgressSaver(context: PlayContext | null) {
 	return { positionRef, durationRef, lastSavedRef, persist };
 }
 
+/** Custom seek bar: filled + buffered regions, click and drag to seek. */
+function SeekBar({
+	position,
+	duration,
+	buffered,
+	onSeek,
+}: {
+	position: number;
+	duration: number;
+	buffered: number;
+	onSeek: (position: number) => void;
+}) {
+	const barRef = useRef<HTMLDivElement>(null);
+	const [dragPos, setDragPos] = useState<number | null>(null);
+	const lastSentRef = useRef(0);
+
+	const fractionAt = (clientX: number) => {
+		const el = barRef.current;
+		if (!el) return 0;
+		const rect = el.getBoundingClientRect();
+		return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+	};
+
+	const shown = dragPos ?? position;
+	const playedPct = duration > 0 ? (shown / duration) * 100 : 0;
+	const bufferedPct =
+		duration > 0 ? Math.min(100, (buffered / duration) * 100) : 0;
+
+	const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+		if (duration <= 0) return;
+		event.currentTarget.setPointerCapture(event.pointerId);
+		setDragPos(fractionAt(event.clientX) * duration);
+	};
+
+	const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+		if (dragPos === null || duration <= 0) return;
+		const next = fractionAt(event.clientX) * duration;
+		setDragPos(next);
+		// Live-scrub, but don't flood mpv with seeks.
+		const now = Date.now();
+		if (now - lastSentRef.current > 150) {
+			lastSentRef.current = now;
+			onSeek(next);
+		}
+	};
+
+	const onPointerUp = () => {
+		if (dragPos !== null) onSeek(dragPos);
+		setDragPos(null);
+	};
+
+	return (
+		<div
+			ref={barRef}
+			className="seekbar"
+			role="slider"
+			aria-label="Seek"
+			aria-valuemin={0}
+			aria-valuemax={Math.round(duration)}
+			aria-valuenow={Math.round(shown)}
+			aria-valuetext={formatTime(shown)}
+			tabIndex={0}
+			onPointerDown={onPointerDown}
+			onPointerMove={onPointerMove}
+			onPointerUp={onPointerUp}
+			onKeyDown={(event) => {
+				if (event.key === "ArrowRight") onSeek(position + 10);
+				if (event.key === "ArrowLeft") onSeek(position - 10);
+			}}
+		>
+			<div className="seekbar-track">
+				<div
+					className="seekbar-buffered"
+					style={{ width: `${bufferedPct}%` }}
+				/>
+				<div className="seekbar-played" style={{ width: `${playedPct}%` }} />
+			</div>
+			<div className="seekbar-thumb" style={{ left: `${playedPct}%` }} />
+		</div>
+	);
+}
+
 /** The upgraded player: mpv renders behind the transparent webview. */
 function MpvPlayer({
 	url,
+	title,
 	context,
 	onError,
 }: {
 	url: string;
+	title: string;
 	context: PlayContext | null;
 	onError: (message: string) => void;
 }) {
+	const navigate = useNavigate();
 	const [paused, setPaused] = useState(false);
 	const [timePos, setTimePos] = useState(0);
 	const [duration, setDuration] = useState(0);
+	const [buffered, setBuffered] = useState(0);
+	const [buffering, setBuffering] = useState(false);
 	const [tracks, setTracks] = useState<MpvTrack[]>([]);
 	const [openMenu, setOpenMenu] = useState<"subs" | "audio" | "speed" | null>(
 		null,
@@ -150,10 +248,32 @@ function MpvPlayer({
 	const [muted, setMuted] = useState(false);
 	const [speed, setSpeed] = useState(1);
 	const [fullscreen, setFullscreen] = useState(false);
+	const [awake, setAwake] = useState(true);
+	const idleTimer = useRef<number>(0);
 	const resumeTargetRef = useRef<number | null>(null);
 	const resumeAppliedRef = useRef(false);
 	const { positionRef, durationRef, lastSavedRef, persist } =
 		useProgressSaver(context);
+
+	// Controls follow the mouse: any movement wakes them, silence puts them
+	// back to sleep while something is playing.
+	const wake = useCallback(() => {
+		setAwake(true);
+		window.clearTimeout(idleTimer.current);
+		idleTimer.current = window.setTimeout(
+			() => setAwake(false),
+			CONTROLS_IDLE_MS,
+		);
+	}, []);
+
+	useEffect(() => {
+		wake();
+		window.addEventListener("mousemove", wake);
+		return () => {
+			window.removeEventListener("mousemove", wake);
+			window.clearTimeout(idleTimer.current);
+		};
+	}, [wake]);
 
 	useEffect(() => {
 		if (!context) return;
@@ -227,6 +347,12 @@ function MpvPlayer({
 							case "speed":
 								setSpeed(data);
 								break;
+							case "paused-for-cache":
+								setBuffering(data ?? false);
+								break;
+							case "demuxer-cache-time":
+								if (data !== null) setBuffered(data);
+								break;
 						}
 					},
 				);
@@ -248,9 +374,10 @@ function MpvPlayer({
 
 	const seekTo = useCallback(
 		(position: number) => {
-			positionRef.current = position;
-			setTimePos(position);
-			command("seek", [position, "absolute"]).catch(() => {});
+			const clamped = Math.max(0, position);
+			positionRef.current = clamped;
+			setTimePos(clamped);
+			command("seek", [clamped, "absolute"]).catch(() => {});
 		},
 		[positionRef],
 	);
@@ -281,6 +408,7 @@ function MpvPlayer({
 
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
+			wake();
 			switch (event.key) {
 				case " ":
 					event.preventDefault();
@@ -310,11 +438,12 @@ function MpvPlayer({
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-	}, [togglePause, toggleMute, toggleFullscreen]);
+	}, [togglePause, toggleMute, toggleFullscreen, wake]);
 
 	const subTracks = tracks.filter((t) => t.type === "sub");
 	const audioTracks = tracks.filter((t) => t.type === "audio");
 	const subtitlesOff = !subTracks.some((t) => t.selected);
+	const chromeVisible = awake || paused || openMenu !== null;
 
 	const toggleSubsMenu = () => {
 		setOpenMenu((menu) => (menu === "subs" ? null : "subs"));
@@ -349,8 +478,8 @@ function MpvPlayer({
 	};
 
 	return (
-		<>
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-pause convenience; the button below is the accessible control */}
+		<div className={chromeVisible ? "chrome" : "chrome chrome-hidden"}>
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-pause convenience; the play button is the accessible control */}
 			<div
 				className="player-click-layer"
 				onClick={() => {
@@ -360,109 +489,200 @@ function MpvPlayer({
 				onDoubleClick={toggleFullscreen}
 				onKeyDown={() => {}}
 			/>
-			<div className="player-controls">
+
+			<div className="player-topbar">
 				<button
 					type="button"
-					className="control-btn"
-					onClick={togglePause}
-					aria-label={paused ? "Play" : "Pause"}
+					className="icon-btn"
+					onClick={() => navigate(-1)}
+					aria-label="Go back"
 				>
-					{paused ? <Play aria-hidden /> : <Pause aria-hidden />}
+					<ArrowLeft aria-hidden />
 				</button>
-				<span className="control-time">{formatTime(timePos)}</span>
-				<input
-					type="range"
-					className="control-seek"
-					min={0}
-					max={duration || 1}
-					step={0.5}
-					value={Math.min(timePos, duration || 1)}
-					disabled={!duration}
-					onChange={(e) => seekTo(Number(e.currentTarget.value))}
-					aria-label="Seek"
-				/>
-				<span className="control-time">{formatTime(duration)}</span>
+				<span className="player-title">{title}</span>
+			</div>
 
-				<button
-					type="button"
-					className="control-btn"
-					onClick={toggleMute}
-					aria-label={muted ? "Unmute" : "Mute"}
-				>
-					{muted || volume === 0 ? (
-						<VolumeX aria-hidden />
-					) : (
-						<Volume2 aria-hidden />
-					)}
-				</button>
-				<input
-					type="range"
-					className="control-seek control-volume"
-					min={0}
-					max={100}
-					step={1}
-					value={muted ? 0 : Math.round(volume)}
-					onChange={(e) => {
-						setProperty("volume", Number(e.currentTarget.value)).catch(
-							() => {},
-						);
-						if (muted) setProperty("mute", false).catch(() => {});
-					}}
-					aria-label="Volume"
-				/>
+			{buffering && (
+				<div className="center-status">
+					<div className="spinner" aria-hidden />
+				</div>
+			)}
+			{!buffering && paused && (
+				<div className="center-status center-paused" aria-hidden>
+					<Play />
+				</div>
+			)}
 
-				<div className="menu-anchor">
+			<div className="chrome-bar">
+				<SeekBar
+					position={timePos}
+					duration={duration}
+					buffered={buffered}
+					onSeek={seekTo}
+				/>
+				<div className="chrome-controls">
 					<button
 						type="button"
-						className="control-btn"
-						onClick={() =>
-							setOpenMenu((menu) => (menu === "speed" ? null : "speed"))
-						}
-						aria-label="Playback speed"
-						aria-expanded={openMenu === "speed"}
+						className="icon-btn play-btn"
+						onClick={togglePause}
+						aria-label={paused ? "Play" : "Pause"}
 					>
-						<Gauge aria-hidden />
+						{paused ? <Play aria-hidden /> : <Pause aria-hidden />}
 					</button>
-					{openMenu === "speed" && (
-						<div className="track-menu" role="menu">
-							{SPEED_OPTIONS.map((option) => (
-								<button
-									type="button"
-									key={option}
-									onClick={() => {
-										setProperty("speed", option).catch(() => {});
-										setOpenMenu(null);
-									}}
-								>
-									<span>{option}×</span>
-									{Math.abs(speed - option) < 0.01 && <Check aria-hidden />}
-								</button>
-							))}
-						</div>
-					)}
-				</div>
+					<button
+						type="button"
+						className="icon-btn skip-btn"
+						onClick={() => command("seek", [-10, "relative"]).catch(() => {})}
+						aria-label="Back 10 seconds"
+					>
+						<RotateCcw aria-hidden />
+						<i>10</i>
+					</button>
+					<button
+						type="button"
+						className="icon-btn skip-btn"
+						onClick={() => command("seek", [10, "relative"]).catch(() => {})}
+						aria-label="Forward 10 seconds"
+					>
+						<RotateCw aria-hidden />
+						<i>10</i>
+					</button>
 
-				{audioTracks.length > 1 && (
+					<div className="volume-group">
+						<button
+							type="button"
+							className="icon-btn"
+							onClick={toggleMute}
+							aria-label={muted ? "Unmute" : "Mute"}
+						>
+							{muted || volume === 0 ? (
+								<VolumeX aria-hidden />
+							) : (
+								<Volume2 aria-hidden />
+							)}
+						</button>
+						<input
+							type="range"
+							className="volume-slider"
+							min={0}
+							max={100}
+							step={1}
+							value={muted ? 0 : Math.round(volume)}
+							onChange={(e) => {
+								setProperty("volume", Number(e.currentTarget.value)).catch(
+									() => {},
+								);
+								if (muted) setProperty("mute", false).catch(() => {});
+							}}
+							aria-label="Volume"
+						/>
+					</div>
+
+					<span className="time-label">
+						{formatTime(timePos)}
+						<em> / {formatTime(duration)}</em>
+					</span>
+
+					<div className="chrome-spacer" />
+
 					<div className="menu-anchor">
 						<button
 							type="button"
-							className="control-btn"
-							onClick={() =>
-								setOpenMenu((menu) => (menu === "audio" ? null : "audio"))
+							className={
+								openMenu === "speed" ? "icon-btn icon-active" : "icon-btn"
 							}
-							aria-label="Audio track"
-							aria-expanded={openMenu === "audio"}
+							onClick={() =>
+								setOpenMenu((menu) => (menu === "speed" ? null : "speed"))
+							}
+							aria-label="Playback speed"
+							aria-expanded={openMenu === "speed"}
 						>
-							<AudioLines aria-hidden />
+							<Gauge aria-hidden />
 						</button>
-						{openMenu === "audio" && (
+						{openMenu === "speed" && (
 							<div className="track-menu" role="menu">
-								{audioTracks.map((track) => (
+								{SPEED_OPTIONS.map((option) => (
+									<button
+										type="button"
+										key={option}
+										onClick={() => {
+											setProperty("speed", option).catch(() => {});
+											setOpenMenu(null);
+										}}
+									>
+										<span>{option}×</span>
+										{Math.abs(speed - option) < 0.01 && <Check aria-hidden />}
+									</button>
+								))}
+							</div>
+						)}
+					</div>
+
+					{audioTracks.length > 1 && (
+						<div className="menu-anchor">
+							<button
+								type="button"
+								className={
+									openMenu === "audio" ? "icon-btn icon-active" : "icon-btn"
+								}
+								onClick={() =>
+									setOpenMenu((menu) => (menu === "audio" ? null : "audio"))
+								}
+								aria-label="Audio track"
+								aria-expanded={openMenu === "audio"}
+							>
+								<AudioLines aria-hidden />
+							</button>
+							{openMenu === "audio" && (
+								<div className="track-menu" role="menu">
+									{audioTracks.map((track) => (
+										<button
+											type="button"
+											key={track.id}
+											onClick={() => {
+												setProperty("aid", track.id).catch(() => {});
+												setOpenMenu(null);
+											}}
+										>
+											<span>{trackLabel(track)}</span>
+											{track.selected && <Check aria-hidden />}
+										</button>
+									))}
+								</div>
+							)}
+						</div>
+					)}
+
+					<div className="menu-anchor">
+						<button
+							type="button"
+							className={
+								openMenu === "subs" ? "icon-btn icon-active" : "icon-btn"
+							}
+							onClick={toggleSubsMenu}
+							aria-label="Subtitles"
+							aria-expanded={openMenu === "subs"}
+						>
+							<Captions aria-hidden />
+						</button>
+						{openMenu === "subs" && (
+							<div className="track-menu" role="menu">
+								<button
+									type="button"
+									onClick={() => {
+										setProperty("sid", "no").catch(() => {});
+										setOpenMenu(null);
+									}}
+								>
+									<span>Off</span>
+									{subtitlesOff && <Check aria-hidden />}
+								</button>
+								{subTracks.map((track) => (
 									<button
 										type="button"
 										key={track.id}
 										onClick={() => {
-											setProperty("aid", track.id).catch(() => {});
+											setProperty("sid", track.id).catch(() => {});
 											setOpenMenu(null);
 										}}
 									>
@@ -470,83 +690,44 @@ function MpvPlayer({
 										{track.selected && <Check aria-hidden />}
 									</button>
 								))}
+								{addonSubs && addonSubs.length > 0 && (
+									<>
+										<div className="menu-section">From addons</div>
+										{addonSubs.map((sub) => (
+											<button
+												type="button"
+												key={`${sub.addonName}-${sub.id ?? sub.url}`}
+												onClick={() => addAddonSubtitle(sub)}
+											>
+												<span>
+													{sub.lang} · {sub.addonName}
+												</span>
+											</button>
+										))}
+									</>
+								)}
+								{addonSubs === null && context && (
+									<div className="menu-section">Loading addon subtitles…</div>
+								)}
+								<button type="button" onClick={addLocalSubtitle}>
+									<span>Load subtitle file…</span>
+									<FolderOpen aria-hidden />
+								</button>
 							</div>
 						)}
 					</div>
-				)}
 
-				<div className="menu-anchor">
 					<button
 						type="button"
-						className="control-btn"
-						onClick={toggleSubsMenu}
-						aria-label="Subtitles"
-						aria-expanded={openMenu === "subs"}
+						className="icon-btn"
+						onClick={toggleFullscreen}
+						aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
 					>
-						<Captions aria-hidden />
+						{fullscreen ? <Minimize aria-hidden /> : <Maximize aria-hidden />}
 					</button>
-					{openMenu === "subs" && (
-						<div className="track-menu" role="menu">
-							<button
-								type="button"
-								onClick={() => {
-									setProperty("sid", "no").catch(() => {});
-									setOpenMenu(null);
-								}}
-							>
-								<span>Off</span>
-								{subtitlesOff && <Check aria-hidden />}
-							</button>
-							{subTracks.map((track) => (
-								<button
-									type="button"
-									key={track.id}
-									onClick={() => {
-										setProperty("sid", track.id).catch(() => {});
-										setOpenMenu(null);
-									}}
-								>
-									<span>{trackLabel(track)}</span>
-									{track.selected && <Check aria-hidden />}
-								</button>
-							))}
-							{addonSubs && addonSubs.length > 0 && (
-								<>
-									<div className="menu-section">From addons</div>
-									{addonSubs.map((sub) => (
-										<button
-											type="button"
-											key={`${sub.addonName}-${sub.id ?? sub.url}`}
-											onClick={() => addAddonSubtitle(sub)}
-										>
-											<span>
-												{sub.lang} · {sub.addonName}
-											</span>
-										</button>
-									))}
-								</>
-							)}
-							{addonSubs === null && context && (
-								<div className="menu-section">Loading addon subtitles…</div>
-							)}
-							<button type="button" onClick={addLocalSubtitle}>
-								<span>Load subtitle file…</span>
-								<FolderOpen aria-hidden />
-							</button>
-						</div>
-					)}
 				</div>
-
-				<button
-					type="button"
-					className="control-btn"
-					onClick={toggleFullscreen}
-					aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-				>
-					{fullscreen ? <Minimize aria-hidden /> : <Maximize aria-hidden />}
-				</button>
 			</div>
-		</>
+		</div>
 	);
 }
 
@@ -576,7 +757,7 @@ function HtmlVideoPlayer({
 	};
 
 	return (
-		// biome-ignore lint/a11y/useMediaCaption: subtitles arrive in a later phase
+		// biome-ignore lint/a11y/useMediaCaption: subtitles come from addons/mpv
 		<video
 			ref={videoRef}
 			src={url}
@@ -689,51 +870,83 @@ function PlayerPage() {
 
 	return (
 		<div className={mpvActive ? "player" : "player opaque"}>
-			<div className="player-topbar">
-				<button
-					type="button"
-					className="back-btn"
-					onClick={() => navigate(-1)}
-					aria-label="Go back"
-				>
-					<ArrowLeft aria-hidden />
-				</button>
-				<span className="player-title">{title}</span>
-			</div>
-
 			{error && (
-				<div className="player-status">
-					<p className="player-error">{error}</p>
-					{notWebReady && mpvReady === false && (
-						<p className="player-hint">
-							This file's format needs mpv, which didn't load. A different
-							stream may work in the meantime.
-						</p>
-					)}
-				</div>
+				<>
+					<div className="player-topbar chrome">
+						<button
+							type="button"
+							className="icon-btn"
+							onClick={() => navigate(-1)}
+							aria-label="Go back"
+						>
+							<ArrowLeft aria-hidden />
+						</button>
+						<span className="player-title">{title}</span>
+					</div>
+					<div className="player-status">
+						<p className="player-error">{error}</p>
+						{notWebReady && mpvReady === false && (
+							<p className="player-hint">
+								This file's format needs mpv, which didn't load. A different
+								stream may work in the meantime.
+							</p>
+						)}
+					</div>
+				</>
 			)}
 
 			{!error && (!playUrl || mpvReady === null) && (
-				<div className="player-status">
-					<div className="spinner" aria-hidden />
-					<p>Preparing stream…</p>
-					<p className="player-hint">
-						Torrents need a moment to find peers before playback starts.
-					</p>
-				</div>
+				<>
+					<div className="player-topbar chrome">
+						<button
+							type="button"
+							className="icon-btn"
+							onClick={() => navigate(-1)}
+							aria-label="Go back"
+						>
+							<ArrowLeft aria-hidden />
+						</button>
+						<span className="player-title">{title}</span>
+					</div>
+					<div className="player-status">
+						<div className="spinner" aria-hidden />
+						<p>Preparing stream…</p>
+						<p className="player-hint">
+							Torrents need a moment to find peers before playback starts.
+						</p>
+					</div>
+				</>
 			)}
 
 			{!error && playUrl && mpvReady === true && (
-				<MpvPlayer url={playUrl} context={context} onError={setError} />
+				<MpvPlayer
+					url={playUrl}
+					title={title}
+					context={context}
+					onError={setError}
+				/>
 			)}
 
 			{!error && playUrl && mpvReady === false && (
-				<HtmlVideoPlayer
-					url={playUrl}
-					context={context}
-					notWebReady={notWebReady}
-					onError={setError}
-				/>
+				<>
+					<div className="player-topbar chrome">
+						<button
+							type="button"
+							className="icon-btn"
+							onClick={() => navigate(-1)}
+							aria-label="Go back"
+						>
+							<ArrowLeft aria-hidden />
+						</button>
+						<span className="player-title">{title}</span>
+					</div>
+					<HtmlVideoPlayer
+						url={playUrl}
+						context={context}
+						notWebReady={notWebReady}
+						onError={setError}
+					/>
+				</>
 			)}
 		</div>
 	);
