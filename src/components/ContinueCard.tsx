@@ -1,8 +1,9 @@
-import { X } from "lucide-react";
+import { Play, X } from "lucide-react";
 import { Link } from "react-router";
 import type { WatchProgress } from "../lib/bindings/WatchProgress";
 
-/** A continue-watching poster with progress bar; used on home and library. */
+/** A continue-watching card: landscape art with a progress bar, like the
+ * mock. Used on home and in the library. */
 export function ContinueCard({
 	entry,
 	onRemove,
@@ -23,15 +24,20 @@ export function ContinueCard({
 				to={`/detail/${entry.type}/${encodeURIComponent(entry.metaId)}`}
 				className="continue-link"
 			>
-				{entry.poster ? (
-					<img src={entry.poster} alt="" loading="lazy" />
-				) : (
-					<div className="poster-fallback" aria-hidden>
-						{entry.name.slice(0, 1)}
+				<div className="continue-art">
+					{entry.poster ? (
+						<img src={entry.poster} alt="" loading="lazy" />
+					) : (
+						<div className="poster-fallback" aria-hidden>
+							{entry.name.slice(0, 1)}
+						</div>
+					)}
+					<div className="continue-play" aria-hidden>
+						<Play />
 					</div>
-				)}
-				<div className="continue-bar" aria-hidden>
-					<div style={{ width: `${percent}%` }} />
+					<div className="continue-bar" aria-hidden>
+						<div style={{ width: `${percent}%` }} />
+					</div>
 				</div>
 				<span className="poster-name">{entry.name}</span>
 				<span className="poster-year">
