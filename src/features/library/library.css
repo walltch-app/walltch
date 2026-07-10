@@ -6,19 +6,19 @@
 
 .continue-card {
 	position: relative;
-	width: 148px;
+	width: 158px;
 }
 
 .continue-link {
 	display: block;
-	width: 148px;
+	width: 158px;
 }
 
 .continue-link img,
 .continue-link .poster-fallback {
 	display: block;
-	width: 148px;
-	height: 222px;
+	width: 158px;
+	height: 237px;
 	border-radius: 12px;
 	border: 1px solid var(--line);
 	background: var(--surface-2);

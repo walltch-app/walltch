@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { listCatalogs } from "../../lib/api";
 import type { CatalogDescriptor } from "../../lib/bindings/CatalogDescriptor";
 import CatalogRow from "./CatalogRow";
+import FeaturedBillboard from "./FeaturedBillboard";
 import "./discover.css";
 
 function DiscoverPage() {
@@ -15,10 +16,18 @@ function DiscoverPage() {
 			.catch((e) => setError(String(e)));
 	}, []);
 
+	const hasCatalogs = catalogs !== null && catalogs.length > 0;
+
 	return (
 		<div className="page">
-			<h1 className="page-title">Discover</h1>
-			<p className="page-subtitle">Browse the catalogs your addons provide.</p>
+			{!hasCatalogs && (
+				<>
+					<h1 className="page-title">Discover</h1>
+					<p className="page-subtitle">
+						Browse the catalogs your addons provide.
+					</p>
+				</>
+			)}
 
 			{error && <p className="form-error">{error}</p>}
 
@@ -34,6 +43,8 @@ function DiscoverPage() {
 					</Link>
 				</div>
 			)}
+
+			{hasCatalogs && <FeaturedBillboard catalog={catalogs[0]} />}
 
 			{catalogs?.map((catalog) => (
 				<CatalogRow

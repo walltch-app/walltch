@@ -1,16 +1,18 @@
 /* Theme tokens. Everything color-related lives here so a future
    user-configurable theme only has to swap this block. */
 :root {
-	--bg: #0a0d15;
-	--surface: #10141f;
-	--surface-2: #161c2a;
-	--line: rgba(148, 163, 198, 0.14);
-	--text: #edf0f8;
-	--muted: #8f97ac;
+	--bg-deep: #10131d;
+	--bg: #161b2a;
+	--surface: #1d2436;
+	--surface-2: #273049;
+	--line: rgba(170, 184, 220, 0.17);
+	--edge: rgba(255, 255, 255, 0.06);
+	--text: #f3f5fb;
+	--muted: #9ba6c0;
 	--accent: #2f5cff;
 	--accent-2: #1cb8f0;
 	--gradient: linear-gradient(135deg, var(--accent) 20%, var(--accent-2));
-	--radius: 10px;
+	--radius: 12px;
 	--font-display: "Outfit Variable", system-ui, sans-serif;
 	--font-body: "Inter Variable", system-ui, sans-serif;
 }
@@ -71,42 +73,73 @@ textarea {
 
 /* ---- App shell ---- */
 
+/* One deep, layered canvas: cool gradient falling to the corners with a
+   soft accent aurora up top. Surfaces float on it instead of tiling it. */
 .shell {
 	display: flex;
+	gap: 14px;
 	height: 100%;
-	background: var(--bg);
+	padding: 14px;
+	background:
+		radial-gradient(
+			1100px 640px at 72% -16%,
+			color-mix(in srgb, var(--accent) 17%, transparent),
+			transparent 65%
+		),
+		radial-gradient(
+			820px 520px at 8% -10%,
+			color-mix(in srgb, var(--accent-2) 9%, transparent),
+			transparent 60%
+		),
+		linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+}
+
+/* Film grain so large gradients don't band; barely-there on purpose. */
+.shell::after {
+	content: "";
+	position: fixed;
+	inset: 0;
+	z-index: 40;
+	pointer-events: none;
+	opacity: 0.026;
+	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
 .sidebar {
 	display: flex;
 	flex-direction: column;
-	width: 224px;
+	width: 236px;
 	flex-shrink: 0;
-	padding: 20px 12px;
-	background: var(--surface);
-	border-right: 1px solid var(--line);
+	padding: 22px 14px 16px;
+	background: color-mix(in srgb, var(--surface) 72%, transparent);
+	backdrop-filter: blur(26px);
+	border: 1px solid var(--line);
+	border-radius: 20px;
+	box-shadow:
+		inset 0 1px 0 var(--edge),
+		0 18px 44px rgba(0, 0, 0, 0.35);
 }
 
 .brand {
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	padding: 4px 10px 22px;
+	gap: 11px;
+	padding: 6px 10px 26px;
 }
 
 .brand img {
-	width: 36px;
-	height: 36px;
+	width: 40px;
+	height: 40px;
 	object-fit: contain;
 	filter: drop-shadow(
-		0 0 14px color-mix(in srgb, var(--accent) 60%, transparent)
+		0 0 16px color-mix(in srgb, var(--accent) 65%, transparent)
 	);
 }
 
 .brand span {
 	font-family: var(--font-display);
-	font-size: 1.25rem;
-	font-weight: 600;
+	font-size: 1.35rem;
+	font-weight: 650;
 	letter-spacing: -0.02em;
 }
 
@@ -124,9 +157,10 @@ textarea {
 	display: flex;
 	align-items: center;
 	gap: 12px;
-	padding: 9px 12px;
-	border-radius: var(--radius);
+	padding: 11px 13px;
+	border-radius: 12px;
 	color: var(--muted);
+	font-size: 0.95rem;
 	font-weight: 500;
 	transition:
 		color 120ms ease,
@@ -169,46 +203,27 @@ textarea {
 	position: relative;
 	flex: 1;
 	overflow-y: auto;
-}
-
-/* Ambient wash in the accent colors, so the canvas isn't a flat void
-   before posters bring their own color. Follows the chosen accent preset. */
-.content::before {
-	content: "";
-	position: fixed;
-	inset: 0 0 auto;
-	height: 380px;
-	pointer-events: none;
-	background:
-		radial-gradient(
-			640px 340px at 26% -14%,
-			color-mix(in srgb, var(--accent) 20%, transparent),
-			transparent 70%
-		),
-		radial-gradient(
-			580px 300px at 74% -18%,
-			color-mix(in srgb, var(--accent-2) 13%, transparent),
-			transparent 70%
-		);
+	overflow-x: hidden;
+	border-radius: 20px;
 }
 
 .page {
 	position: relative;
-	max-width: 1400px;
-	padding: 36px 40px 48px;
+	max-width: 1480px;
+	padding: 34px 38px 56px;
 }
 
 .page-title {
 	font-family: var(--font-display);
-	font-size: 1.65rem;
-	font-weight: 600;
-	letter-spacing: -0.02em;
+	font-size: 2rem;
+	font-weight: 700;
+	letter-spacing: -0.025em;
 }
 
 .page-subtitle {
-	margin-top: 4px;
+	margin-top: 5px;
 	color: var(--muted);
-	font-size: 0.95rem;
+	font-size: 0.98rem;
 }
 
 /* ---- Shared bits ---- */
