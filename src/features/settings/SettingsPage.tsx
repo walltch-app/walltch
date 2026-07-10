@@ -24,7 +24,7 @@ const CACHE_MODES: {
 	{
 		id: "ram",
 		label: "Memory only",
-		hint: "Nothing touches the disk: a 512 MB window is held in RAM. Seeking far back re-buffers. Experimental.",
+		hint: "Nothing touches the disk: a 512 MB window is held in RAM and anything outside it is re-downloaded, so this wants a fast, stable connection. Experimental.",
 	},
 ];
 
