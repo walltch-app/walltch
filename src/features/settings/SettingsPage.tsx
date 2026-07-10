@@ -29,6 +29,13 @@ const CACHE_MODES: {
 	},
 ];
 
+const SUBTITLE_COLORS: { hex: string; name: string }[] = [
+	{ hex: "#ffffff", name: "White" },
+	{ hex: "#ffe64d", name: "Yellow" },
+	{ hex: "#7ee3ff", name: "Cyan" },
+	{ hex: "#9dff87", name: "Green" },
+];
+
 function SettingsPage() {
 	const [settings, setLocal] = useState<Settings | null>(null);
 
@@ -165,6 +172,47 @@ function SettingsPage() {
 								</button>
 							))}
 						</div>
+						<div className="accent-row">
+							{SUBTITLE_COLORS.map((color) => (
+								<button
+									type="button"
+									key={color.hex}
+									className={
+										settings.subtitleColor === color.hex
+											? "accent-swatch accent-active"
+											: "accent-swatch"
+									}
+									style={{ background: color.hex }}
+									onClick={() =>
+										update({ ...settings, subtitleColor: color.hex })
+									}
+									aria-label={`${color.name} subtitles`}
+									title={color.name}
+								>
+									{settings.subtitleColor === color.hex && (
+										<Check aria-hidden className="swatch-check-dark" />
+									)}
+								</button>
+							))}
+						</div>
+						<label className="settings-toggle">
+							<input
+								type="checkbox"
+								checked={settings.subtitleBackground}
+								onChange={(e) =>
+									update({
+										...settings,
+										subtitleBackground: e.currentTarget.checked,
+									})
+								}
+							/>
+							<div>
+								<span>Background box</span>
+								<p className="settings-hint">
+									A translucent dark box behind the text, for bright scenes.
+								</p>
+							</div>
+						</label>
 					</section>
 
 					<section className="settings-section">

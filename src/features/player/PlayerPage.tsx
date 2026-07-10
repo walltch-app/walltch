@@ -95,20 +95,19 @@ function trackLabel(track: MpvTrack) {
 	return track.lang ? `${name} · ${track.lang}` : name;
 }
 
-function mpvConfig(
-	settings: {
-		hardwareDecoding: boolean;
-		subtitleScale: number;
-		preferredSubtitleLang: string;
-	} | null,
-): MpvConfig {
+function mpvConfig(settings: Settings | null): MpvConfig {
 	const initialOptions: Record<string, string> = {
 		vo: "gpu-next",
 		hwdec: settings?.hardwareDecoding === false ? "no" : "auto-safe",
 		"sub-scale": String(settings?.subtitleScale ?? 1),
+		"sub-color": settings?.subtitleColor || "#ffffff",
 		"keep-open": "yes",
 		"force-window": "yes",
 	};
+	if (settings?.subtitleBackground) {
+		// mpv takes #AARRGGBB; B3 ≈ 70% black.
+		initialOptions["sub-back-color"] = "#B3000000";
+	}
 	if (settings?.preferredSubtitleLang) {
 		// Lets mpv auto-pick matching embedded tracks on its own.
 		initialOptions.slang = langAliases(settings.preferredSubtitleLang).join(

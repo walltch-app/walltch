@@ -113,6 +113,10 @@ pub struct Settings {
     pub cache_mode: CacheMode,
     /// Two-letter code of the subtitle language to auto-select; empty = off.
     pub preferred_subtitle_lang: String,
+    /// Subtitle text color as #rrggbb.
+    pub subtitle_color: String,
+    /// Draw a translucent box behind subtitles for readability.
+    pub subtitle_background: bool,
 }
 
 impl Default for Settings {
@@ -126,6 +130,8 @@ impl Default for Settings {
             upload_limit_mbps: 0.0,
             cache_mode: CacheMode::Keep,
             preferred_subtitle_lang: String::new(),
+            subtitle_color: "#ffffff".to_owned(),
+            subtitle_background: false,
         }
     }
 }

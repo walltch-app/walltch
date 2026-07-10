@@ -37,4 +37,12 @@ cacheMode: CacheMode,
 /**
  * Two-letter code of the subtitle language to auto-select; empty = off.
  */
-preferredSubtitleLang: string, };
+preferredSubtitleLang: string, 
+/**
+ * Subtitle text color as #rrggbb.
+ */
+subtitleColor: string, 
+/**
+ * Draw a translucent box behind subtitles for readability.
+ */
+subtitleBackground: boolean, };

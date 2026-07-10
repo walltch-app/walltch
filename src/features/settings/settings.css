@@ -47,6 +47,10 @@
 	height: 18px;
 }
 
+.swatch-check-dark {
+	color: #10131d;
+}
+
 .settings-toggle {
 	display: flex;
 	align-items: flex-start;
