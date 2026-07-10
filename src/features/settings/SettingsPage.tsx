@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getSettings, setSettings } from "../../lib/api";
 import type { CacheMode } from "../../lib/bindings/CacheMode";
 import type { Settings } from "../../lib/bindings/Settings";
+import { SUBTITLE_LANGS } from "../../lib/lang";
 import { ACCENTS, type AccentId, applyAccent } from "../../lib/theme";
 import "./settings.css";
 
@@ -119,7 +120,28 @@ function SettingsPage() {
 					</section>
 
 					<section className="settings-section">
-						<h2>Subtitle size</h2>
+						<h2>Subtitles</h2>
+						<p className="settings-hint">
+							Preferred language — embedded tracks and addon subtitles in it are
+							selected automatically when playback starts.
+						</p>
+						<select
+							className="settings-select"
+							value={settings.preferredSubtitleLang}
+							onChange={(e) =>
+								update({
+									...settings,
+									preferredSubtitleLang: e.currentTarget.value,
+								})
+							}
+							aria-label="Preferred subtitle language"
+						>
+							{SUBTITLE_LANGS.map((lang) => (
+								<option key={lang.id} value={lang.id}>
+									{lang.name}
+								</option>
+							))}
+						</select>
 						<div className="size-chips">
 							{(
 								[

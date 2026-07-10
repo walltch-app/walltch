@@ -111,6 +111,8 @@ pub struct Settings {
     pub upload_limit_mbps: f64,
     /// Where stream data is cached.
     pub cache_mode: CacheMode,
+    /// Two-letter code of the subtitle language to auto-select; empty = off.
+    pub preferred_subtitle_lang: String,
 }
 
 impl Default for Settings {
@@ -123,6 +125,7 @@ impl Default for Settings {
             download_limit_mbps: 0.0,
             upload_limit_mbps: 0.0,
             cache_mode: CacheMode::Keep,
+            preferred_subtitle_lang: String::new(),
         }
     }
 }

@@ -33,4 +33,8 @@ uploadLimitMbps: number,
 /**
  * Where stream data is cached.
  */
-cacheMode: CacheMode, };
+cacheMode: CacheMode, 
+/**
+ * Two-letter code of the subtitle language to auto-select; empty = off.
+ */
+preferredSubtitleLang: string, };

@@ -67,6 +67,25 @@
 	font-weight: 500;
 }
 
+.settings-select {
+	display: block;
+	margin-top: 14px;
+	min-width: 220px;
+	padding: 10px 14px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	color: var(--text);
+	font-family: var(--font-body);
+	font-size: 0.9rem;
+	cursor: pointer;
+}
+
+.settings-select:focus {
+	outline: none;
+	border-color: var(--accent);
+}
+
 .size-chips {
 	display: flex;
 	gap: 8px;

@@ -42,6 +42,8 @@ import {
 } from "../../lib/api";
 import type { AddonStream } from "../../lib/bindings/AddonStream";
 import type { AddonSubtitle } from "../../lib/bindings/AddonSubtitle";
+import type { Settings } from "../../lib/bindings/Settings";
+import { langAliases, langMatches } from "../../lib/lang";
 import "./player.css";
 
 /** What the detail page knows about the thing being played. */
@@ -97,18 +99,23 @@ function mpvConfig(
 	settings: {
 		hardwareDecoding: boolean;
 		subtitleScale: number;
+		preferredSubtitleLang: string;
 	} | null,
 ): MpvConfig {
-	return {
-		initialOptions: {
-			vo: "gpu-next",
-			hwdec: settings?.hardwareDecoding === false ? "no" : "auto-safe",
-			"sub-scale": String(settings?.subtitleScale ?? 1),
-			"keep-open": "yes",
-			"force-window": "yes",
-		},
-		observedProperties: OBSERVED_PROPERTIES,
+	const initialOptions: Record<string, string> = {
+		vo: "gpu-next",
+		hwdec: settings?.hardwareDecoding === false ? "no" : "auto-safe",
+		"sub-scale": String(settings?.subtitleScale ?? 1),
+		"keep-open": "yes",
+		"force-window": "yes",
 	};
+	if (settings?.preferredSubtitleLang) {
+		// Lets mpv auto-pick matching embedded tracks on its own.
+		initialOptions.slang = langAliases(settings.preferredSubtitleLang).join(
+			",",
+		);
+	}
+	return { initialOptions, observedProperties: OBSERVED_PROPERTIES };
 }
 
 function formatTime(secs: number) {
@@ -234,11 +241,13 @@ function MpvPlayer({
 	url,
 	title,
 	context,
+	preferredSubtitleLang,
 	onError,
 }: {
 	url: string;
 	title: string;
 	context: PlayContext | null;
+	preferredSubtitleLang: string;
 	onError: (message: string) => void;
 }) {
 	const navigate = useNavigate();
@@ -452,6 +461,39 @@ function MpvPlayer({
 	const audioTracks = tracks.filter((t) => t.type === "audio");
 	const subtitlesOff = !subTracks.some((t) => t.selected);
 	const chromeVisible = awake || paused || openMenu !== null;
+	const autoSubDoneRef = useRef(false);
+
+	// If no embedded track satisfies the preferred subtitle language (mpv's
+	// slang already tried), pull one from the subtitle addons.
+	useEffect(() => {
+		if (autoSubDoneRef.current || !preferredSubtitleLang || !context) return;
+		if (tracks.length === 0) return;
+		autoSubDoneRef.current = true;
+		const alreadyGood = tracks.some(
+			(t) =>
+				t.type === "sub" &&
+				t.selected &&
+				t.lang &&
+				langMatches(preferredSubtitleLang, t.lang),
+		);
+		if (alreadyGood) return;
+		getSubtitles(context.contentType, context.videoId)
+			.then((subs) => {
+				setAddonSubs(subs);
+				const match = subs.find((s) =>
+					langMatches(preferredSubtitleLang, s.lang),
+				);
+				if (match) {
+					command("sub-add", [
+						match.url,
+						"select",
+						`${match.lang} (${match.addonName})`,
+						match.lang,
+					]).catch(() => {});
+				}
+			})
+			.catch(() => {});
+	}, [tracks, context, preferredSubtitleLang]);
 
 	const toggleSubsMenu = () => {
 		setOpenMenu((menu) => (menu === "subs" ? null : "subs"));
@@ -824,6 +866,7 @@ function PlayerPage() {
 
 	const [playUrl, setPlayUrl] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [playerSettings, setPlayerSettings] = useState<Settings | null>(null);
 	// null = still initializing, false = mpv unavailable (fall back to <video>)
 	const [mpvReady, setMpvReady] = useState<boolean | null>(null);
 
@@ -832,6 +875,7 @@ function PlayerPage() {
 		(async () => {
 			try {
 				const settings = await getSettings().catch(() => null);
+				if (active && settings) setPlayerSettings(settings);
 				if (settings && !settings.useMpv) {
 					if (active) setMpvReady(false);
 					return;
@@ -931,6 +975,7 @@ function PlayerPage() {
 					url={playUrl}
 					title={title}
 					context={context}
+					preferredSubtitleLang={playerSettings?.preferredSubtitleLang ?? ""}
 					onError={setError}
 				/>
 			)}
