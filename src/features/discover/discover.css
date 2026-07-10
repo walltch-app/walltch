@@ -115,6 +115,19 @@
 	font-size: 0.8rem;
 }
 
+.row-chip {
+	padding: 3px 11px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+	color: var(--muted);
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	transform: translateY(-2px);
+}
+
 .row-note {
 	color: var(--muted);
 	font-size: 0.875rem;

@@ -28,9 +28,20 @@ function DiscoverPage() {
 
 	const hasCatalogs = catalogs !== null && catalogs.length > 0;
 
+	const hour = new Date().getHours();
+	const greeting =
+		hour < 6
+			? "Up late?"
+			: hour < 12
+				? "Good morning"
+				: hour < 18
+					? "Good afternoon"
+					: "Good evening";
+
 	return (
 		<div className="page">
 			<div className="home-top">
+				<h1 className="home-greeting">{greeting}</h1>
 				<div className="home-search">
 					<Search aria-hidden />
 					<input

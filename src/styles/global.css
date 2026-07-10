@@ -86,7 +86,7 @@ textarea {
 	background:
 		radial-gradient(
 			1100px 640px at 72% -16%,
-			color-mix(in srgb, var(--accent) 17%, transparent),
+			color-mix(in srgb, var(--ambient, var(--accent)) 18%, transparent),
 			transparent 65%
 		),
 		radial-gradient(
@@ -169,26 +169,6 @@ textarea {
 	height: 15px;
 }
 
-.sidebar-min .brand {
-	justify-content: center;
-	padding-left: 0;
-	padding-right: 0;
-}
-
-.sidebar-min .nav-label {
-	display: none;
-}
-
-.sidebar-min .nav-link {
-	justify-content: center;
-	gap: 0;
-	padding: 12px 0;
-}
-
-.sidebar-min .nav-link::before {
-	display: none;
-}
-
 .brand {
 	display: flex;
 	align-items: center;
@@ -266,6 +246,27 @@ textarea {
 .nav-link svg {
 	width: 18px;
 	height: 18px;
+}
+
+/* Collapsed rail: icon-only, labels and the triangle drop out. */
+.sidebar-min .brand {
+	justify-content: center;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.sidebar-min .nav-label {
+	display: none;
+}
+
+.sidebar-min .nav-link {
+	justify-content: center;
+	gap: 0;
+	padding: 12px 0;
+}
+
+.sidebar-min .nav-link::before {
+	display: none;
 }
 
 .content {

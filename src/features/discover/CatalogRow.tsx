@@ -168,9 +168,7 @@ function CatalogRow({ catalog }: { catalog: CatalogDescriptor }) {
 		<section ref={rowRef} className="catalog-row">
 			<header>
 				<h2>{title}</h2>
-				<span className="row-meta">
-					{catalog.type} · {catalog.addonName}
-				</span>
+				<span className="row-chip">{catalog.type}</span>
 			</header>
 			{failed ? (
 				<p className="row-note">This catalog didn't answer. It may be down.</p>
