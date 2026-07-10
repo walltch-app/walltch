@@ -5,6 +5,7 @@ import AddonsPage from "./features/addons/AddonsPage";
 import DetailPage from "./features/detail/DetailPage";
 import CatalogPage from "./features/discover/CatalogPage";
 import DiscoverPage from "./features/discover/DiscoverPage";
+import TypeBoardPage from "./features/discover/TypeBoardPage";
 import LibraryPage from "./features/library/LibraryPage";
 import PlayerPage from "./features/player/PlayerPage";
 import SettingsPage from "./features/settings/SettingsPage";
@@ -23,6 +24,14 @@ function App() {
 			<Routes>
 				<Route element={<Layout />}>
 					<Route index element={<DiscoverPage />} />
+					<Route
+						path="movies"
+						element={<TypeBoardPage contentType="movie" title="Movies" />}
+					/>
+					<Route
+						path="series"
+						element={<TypeBoardPage contentType="series" title="Series" />}
+					/>
 					<Route path="catalog" element={<CatalogPage />} />
 					<Route path="library" element={<LibraryPage />} />
 					<Route path="addons" element={<AddonsPage />} />

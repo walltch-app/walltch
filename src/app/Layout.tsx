@@ -2,10 +2,12 @@ import {
 	Bookmark,
 	ChevronLeft,
 	ChevronRight,
+	Clapperboard,
 	Compass,
 	Puzzle,
 	Search,
 	Settings,
+	Tv,
 	X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -125,6 +127,14 @@ function Layout() {
 						<NavLink to="/" end className={linkClass} title="Discover">
 							<Compass aria-hidden />
 							<span className="nav-label">Discover</span>
+						</NavLink>
+						<NavLink to="/movies" className={linkClass} title="Movies">
+							<Clapperboard aria-hidden />
+							<span className="nav-label">Movies</span>
+						</NavLink>
+						<NavLink to="/series" className={linkClass} title="Series">
+							<Tv aria-hidden />
+							<span className="nav-label">Series</span>
 						</NavLink>
 						<NavLink to="/library" className={linkClass} title="Library">
 							<Bookmark aria-hidden />
