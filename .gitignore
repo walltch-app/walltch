@@ -1,8 +1,10 @@
 # Rust
 target/
 
-# Fetched native libraries (bunx tauri-plugin-libmpv-api setup-lib)
-src-tauri/lib/
+# Fetched native libraries (bunx tauri-plugin-libmpv-api setup-lib).
+# .gitkeep stays tracked so the bundle resources glob matches everywhere.
+src-tauri/lib/*
+!src-tauri/lib/.gitkeep
 
 # Env
 .env
