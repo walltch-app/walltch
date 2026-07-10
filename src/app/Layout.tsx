@@ -1,4 +1,4 @@
-import { Bookmark, Compass, Puzzle, Search, Settings } from "lucide-react";
+import { Bookmark, Compass, Puzzle, Settings } from "lucide-react";
 import { useEffect } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 
@@ -8,7 +8,7 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 function Layout() {
 	const navigate = useNavigate();
 
-	// "/" or Ctrl+K jumps to search from anywhere (unless already typing).
+	// "/" or Ctrl+K focuses the home search from anywhere (unless typing).
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
 			const typing = (event.target as HTMLElement)?.tagName === "INPUT";
@@ -16,7 +16,10 @@ function Layout() {
 			const ctrlK = event.key === "k" && (event.ctrlKey || event.metaKey);
 			if (slash || ctrlK) {
 				event.preventDefault();
-				navigate("/search");
+				navigate("/");
+				setTimeout(() => {
+					document.getElementById("home-search")?.focus();
+				}, 60);
 			}
 		};
 		window.addEventListener("keydown", onKey);
@@ -34,10 +37,6 @@ function Layout() {
 					<NavLink to="/" end className={linkClass}>
 						<Compass aria-hidden />
 						Discover
-					</NavLink>
-					<NavLink to="/search" className={linkClass}>
-						<Search aria-hidden />
-						Search
 					</NavLink>
 					<NavLink to="/library" className={linkClass}>
 						<Bookmark aria-hidden />
