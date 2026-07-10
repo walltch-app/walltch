@@ -2,10 +2,11 @@
 // tokens move, which is exactly what the CSS was built around.
 
 export const ACCENTS = {
+	// Sampled from the logo mark itself.
 	"walltch-blue": {
 		name: "Walltch Blue",
-		accent: "#2f5cff",
-		accent2: "#1cb8f0",
+		accent: "#0353f2",
+		accent2: "#09a2fb",
 	},
 	violet: { name: "Violet", accent: "#7c3aed", accent2: "#c084fc" },
 	emerald: { name: "Emerald", accent: "#059669", accent2: "#34d399" },

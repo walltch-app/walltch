@@ -1,16 +1,19 @@
 /* Theme tokens. Everything color-related lives here so a future
    user-configurable theme only has to swap this block. */
 :root {
-	--bg-deep: #10131d;
-	--bg: #161b2a;
-	--surface: #1d2436;
-	--surface-2: #273049;
+	/* Accents sampled straight from the logo's gradient. */
+	--accent: #0353f2;
+	--accent-2: #09a2fb;
+	/* Neutral bases are tinted with the accent, so the canvas itself
+	   carries the brand blue (and follows the accent preset). */
+	--bg-deep: color-mix(in srgb, var(--accent) 5%, #0d1119);
+	--bg: color-mix(in srgb, var(--accent) 7%, #141823);
+	--surface: color-mix(in srgb, var(--accent) 9%, #1b202d);
+	--surface-2: color-mix(in srgb, var(--accent) 13%, #242b3c);
 	--line: rgba(170, 184, 220, 0.17);
 	--edge: rgba(255, 255, 255, 0.06);
 	--text: #f3f5fb;
 	--muted: #9ba6c0;
-	--accent: #2f5cff;
-	--accent-2: #1cb8f0;
 	--gradient: linear-gradient(135deg, var(--accent) 20%, var(--accent-2));
 	--radius: 12px;
 	--font-display: "Outfit Variable", system-ui, sans-serif;
