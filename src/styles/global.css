@@ -5,16 +5,16 @@
 	   stay one click away in Settings. */
 	--accent: #d0588a;
 	--accent-2: #f7a572;
-	/* Near-black neutral bases with a whisper of accent, so the canvas is
-	   deep like the mock but still carries the brand blue. */
-	--bg-deep: color-mix(in srgb, var(--accent) 3%, #0a0a0f);
-	--bg: color-mix(in srgb, var(--accent) 4%, #101016);
-	--surface: color-mix(in srgb, var(--accent) 6%, #17171f);
-	--surface-2: color-mix(in srgb, var(--accent) 9%, #20202b);
-	--line: rgba(170, 184, 220, 0.17);
+	/* Neutral near-black bases, straight from the mock. The accent stays in
+	   buttons and highlights; the canvas itself doesn't shift with it. */
+	--bg-deep: #0a0a0d;
+	--bg: #0e0e12;
+	--surface: #16161b;
+	--surface-2: #1f1f26;
+	--line: rgba(255, 255, 255, 0.09);
 	--edge: rgba(255, 255, 255, 0.06);
 	--text: #f3f5fb;
-	--muted: #9ba6c0;
+	--muted: #a0a0ac;
 	--gradient: linear-gradient(135deg, var(--accent) 20%, var(--accent-2));
 	--radius: 12px;
 	--font-display: "Outfit Variable", system-ui, sans-serif;
@@ -77,8 +77,9 @@ textarea {
 
 /* ---- App shell ---- */
 
-/* One deep, layered canvas: cool gradient falling to the corners with a
-   soft accent aurora up top. Surfaces float on it instead of tiling it. */
+/* Flat near-black canvas like the mock, with its one flourish: the glowing
+   orb peeking out of the bottom-left corner — a dark sphere with a pink
+   rim, mostly offscreen. */
 .shell {
 	display: flex;
 	flex-direction: column;
@@ -86,16 +87,18 @@ textarea {
 	padding: 12px 14px 14px;
 	background:
 		radial-gradient(
-			1100px 640px at 72% -16%,
-			color-mix(in srgb, var(--ambient, var(--accent)) 14%, transparent),
-			transparent 65%
+			circle 210px at 20px calc(100% + 50px),
+			var(--bg-deep) 0,
+			var(--bg-deep) 96%,
+			transparent 100%
 		),
 		radial-gradient(
-			620px 620px at -6% 106%,
-			color-mix(in srgb, var(--ambient, var(--accent)) 22%, transparent),
-			transparent 62%
+			circle 250px at 20px calc(100% + 50px),
+			color-mix(in srgb, var(--accent) 80%, transparent) 82%,
+			color-mix(in srgb, var(--accent) 20%, transparent) 93%,
+			transparent 100%
 		),
-		linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+		var(--bg);
 }
 
 /* Film grain so large gradients don't band; barely-there on purpose. */

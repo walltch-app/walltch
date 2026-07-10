@@ -59,49 +59,6 @@ function FeaturedBillboard({ catalog }: { catalog: CatalogDescriptor }) {
 		};
 	}, [featured]);
 
-	// Tint the whole canvas with the artwork's dominant color, so the app
-	// takes on the mood of whatever is featured instead of one fixed look.
-	useEffect(() => {
-		if (!featured) return;
-		const src = featured.background ?? featured.poster;
-		if (!src) return;
-		const image = new Image();
-		image.crossOrigin = "anonymous";
-		image.onload = () => {
-			try {
-				const canvas = document.createElement("canvas");
-				canvas.width = 24;
-				canvas.height = 24;
-				const ctx = canvas.getContext("2d");
-				if (!ctx) return;
-				ctx.drawImage(image, 0, 0, 24, 24);
-				const { data } = ctx.getImageData(0, 0, 24, 24);
-				let r = 0;
-				let g = 0;
-				let b = 0;
-				let count = 0;
-				for (let i = 0; i < data.length; i += 4) {
-					const max = Math.max(data[i], data[i + 1], data[i + 2]);
-					const min = Math.min(data[i], data[i + 1], data[i + 2]);
-					// Only colorful pixels vote; gray skies shouldn't wash it out.
-					if (max < 40 || max - min < 26) continue;
-					r += data[i];
-					g += data[i + 1];
-					b += data[i + 2];
-					count++;
-				}
-				if (count < 12) return;
-				document.documentElement.style.setProperty(
-					"--ambient",
-					`rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)})`,
-				);
-			} catch {
-				// Canvas tainted by a CORS-less image host: keep the accent tint.
-			}
-		};
-		image.src = src;
-	}, [featured]);
-
 	if (!featured) return null;
 
 	const art = featured.background ?? featured.poster ?? undefined;
