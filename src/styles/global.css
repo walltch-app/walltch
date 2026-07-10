@@ -80,9 +80,9 @@ textarea {
    soft accent aurora up top. Surfaces float on it instead of tiling it. */
 .shell {
 	display: flex;
-	gap: 14px;
+	flex-direction: column;
 	height: 100%;
-	padding: 14px;
+	padding: 12px 14px 14px;
 	background:
 		radial-gradient(
 			1100px 640px at 72% -16%,
@@ -108,13 +108,46 @@ textarea {
 	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
+.topbar {
+	display: flex;
+	align-items: center;
+	gap: 28px;
+	padding: 6px 12px 14px;
+}
+
+.topbar-search {
+	flex: 1;
+	max-width: 480px;
+}
+
+.topbar-spacer {
+	flex: 1;
+}
+
+.shell-body {
+	display: flex;
+	gap: 14px;
+	flex: 1;
+	min-height: 0;
+}
+
+.sidebar-quote {
+	padding: 0 12px 14px;
+	border: 0;
+	color: var(--muted);
+	font-size: 0.78rem;
+	font-style: italic;
+	line-height: 1.5;
+	opacity: 0.8;
+}
+
 .sidebar {
 	position: relative;
 	display: flex;
 	flex-direction: column;
 	width: 236px;
 	flex-shrink: 0;
-	padding: 22px 14px 16px;
+	padding: 16px 14px;
 	background: color-mix(in srgb, var(--surface) 72%, transparent);
 	backdrop-filter: blur(26px);
 	border: 1px solid var(--line);
@@ -173,7 +206,7 @@ textarea {
 	display: flex;
 	align-items: center;
 	gap: 11px;
-	padding: 6px 10px 26px;
+	padding: 0 4px;
 }
 
 .brand img {
@@ -249,12 +282,6 @@ textarea {
 }
 
 /* Collapsed rail: icon-only, labels and the triangle drop out. */
-.sidebar-min .brand {
-	justify-content: center;
-	padding-left: 0;
-	padding-right: 0;
-}
-
 .sidebar-min .nav-label {
 	display: none;
 }

@@ -1,6 +1,5 @@
-import { Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { listCatalogs } from "../../lib/api";
 import type { CatalogDescriptor } from "../../lib/bindings/CatalogDescriptor";
 import SearchResults from "../search/SearchResults";
@@ -12,20 +11,14 @@ import "./discover.css";
 function DiscoverPage() {
 	const [catalogs, setCatalogs] = useState<CatalogDescriptor[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const [input, setInput] = useState("");
-	const [query, setQuery] = useState("");
+	const [params] = useSearchParams();
+	const query = params.get("q")?.trim() ?? "";
 
 	useEffect(() => {
 		listCatalogs()
 			.then(setCatalogs)
 			.catch((e) => setError(String(e)));
 	}, []);
-
-	// Debounced: the board swaps to results only once typing settles.
-	useEffect(() => {
-		const handle = setTimeout(() => setQuery(input.trim()), 350);
-		return () => clearTimeout(handle);
-	}, [input]);
 
 	const hasCatalogs = catalogs !== null && catalogs.length > 0;
 
@@ -41,30 +34,11 @@ function DiscoverPage() {
 
 	return (
 		<div className="page">
-			<div className="home-top">
-				<h1 className="home-greeting">{greeting}</h1>
-				<div className="home-search">
-					<Search aria-hidden />
-					<input
-						id="home-search"
-						type="search"
-						placeholder="Search movies and series…"
-						value={input}
-						onChange={(e) => setInput(e.currentTarget.value)}
-						spellCheck={false}
-						aria-label="Search"
-					/>
-					{input && (
-						<button
-							type="button"
-							onClick={() => setInput("")}
-							aria-label="Clear search"
-						>
-							<X aria-hidden />
-						</button>
-					)}
+			{!query && (
+				<div className="home-top">
+					<h1 className="home-greeting">{greeting}</h1>
 				</div>
-			</div>
+			)}
 
 			{error && <p className="form-error">{error}</p>}
 
