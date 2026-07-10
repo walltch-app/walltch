@@ -5,6 +5,7 @@ import { listCatalogs } from "../../lib/api";
 import type { CatalogDescriptor } from "../../lib/bindings/CatalogDescriptor";
 import SearchResults from "../search/SearchResults";
 import CatalogRow from "./CatalogRow";
+import ContinueRow from "./ContinueRow";
 import FeaturedBillboard from "./FeaturedBillboard";
 import "./discover.css";
 
@@ -85,6 +86,8 @@ function DiscoverPage() {
 					)}
 
 					{hasCatalogs && <FeaturedBillboard catalog={catalogs[0]} />}
+
+					<ContinueRow />
 
 					{catalogs?.map((catalog) => (
 						<CatalogRow
