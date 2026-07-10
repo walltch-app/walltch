@@ -1,10 +1,13 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
 	Bookmark,
+	Cat,
 	ChevronLeft,
 	ChevronRight,
 	Clapperboard,
 	Compass,
+	Download,
+	History,
 	Minus,
 	Puzzle,
 	Search,
@@ -157,38 +160,55 @@ function Layout() {
 							<ChevronLeft aria-hidden />
 						)}
 					</button>
-					<nav aria-label="Main">
-						<NavLink to="/" end className={linkClass} title="Discover">
+					<nav aria-label="Ana menü">
+						<NavLink to="/" end className={linkClass} title="Keşfet">
 							<Compass aria-hidden />
-							<span className="nav-label">Discover</span>
+							<span className="nav-label">Keşfet</span>
 						</NavLink>
-						<NavLink to="/movies" className={linkClass} title="Movies">
+						<NavLink to="/movies" className={linkClass} title="Filmler">
 							<Clapperboard aria-hidden />
-							<span className="nav-label">Movies</span>
+							<span className="nav-label">Filmler</span>
 						</NavLink>
-						<NavLink to="/series" className={linkClass} title="Series">
+						<NavLink to="/series" className={linkClass} title="Diziler">
 							<Tv aria-hidden />
-							<span className="nav-label">Series</span>
+							<span className="nav-label">Diziler</span>
 						</NavLink>
-						<NavLink to="/library" className={linkClass} title="Library">
+						<NavLink to="/anime" className={linkClass} title="Animeler">
+							<Cat aria-hidden />
+							<span className="nav-label">Animeler</span>
+						</NavLink>
+						<NavLink to="/library" className={linkClass} title="Listem">
 							<Bookmark aria-hidden />
-							<span className="nav-label">Library</span>
+							<span className="nav-label">Listem</span>
 						</NavLink>
-						<NavLink to="/addons" className={linkClass} title="Addons">
+						<NavLink to="/continue" className={linkClass} title="Devam Et">
+							<History aria-hidden />
+							<span className="nav-label">Devam Et</span>
+						</NavLink>
+						<NavLink to="/downloads" className={linkClass} title="İndirilenler">
+							<Download aria-hidden />
+							<span className="nav-label">İndirilenler</span>
+						</NavLink>
+						<NavLink to="/addons" className={linkClass} title="Eklentiler">
 							<Puzzle aria-hidden />
-							<span className="nav-label">Addons</span>
+							<span className="nav-label">Eklentiler</span>
+						</NavLink>
+					</nav>
+					<div className="nav-divider" />
+					<nav aria-label="İkincil menü">
+						<NavLink to="/settings" className={linkClass} title="Ayarlar">
+							<Settings aria-hidden />
+							<span className="nav-label">Ayarlar</span>
+						</NavLink>
+						<NavLink to="/profile" className={linkClass} title="Profil">
+							<User aria-hidden />
+							<span className="nav-label">Profil</span>
 						</NavLink>
 					</nav>
 					<div className="spacer" />
 					<blockquote className="sidebar-quote nav-label">
-						“Cinema is a matter of what's in the frame and what's out.”
+						İyi bir film, üstüne düşünüldükçe daha da güzelleşir.
 					</blockquote>
-					<nav aria-label="Secondary">
-						<NavLink to="/settings" className={linkClass} title="Settings">
-							<Settings aria-hidden />
-							<span className="nav-label">Settings</span>
-						</NavLink>
-					</nav>
 				</aside>
 				<main className="content">
 					<Outlet />

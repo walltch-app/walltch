@@ -187,13 +187,30 @@ textarea {
 }
 
 .sidebar-quote {
-	padding: 0 12px 14px;
+	position: relative;
+	padding: 18px 12px 10px;
 	border: 0;
 	color: var(--muted);
 	font-size: 0.78rem;
 	font-style: italic;
 	line-height: 1.5;
-	opacity: 0.8;
+	opacity: 0.85;
+}
+
+.sidebar-quote::before {
+	content: "“";
+	display: block;
+	font-family: var(--font-display);
+	font-size: 1.6rem;
+	font-style: normal;
+	line-height: 0.6;
+	color: color-mix(in srgb, var(--accent) 65%, var(--muted));
+}
+
+.nav-divider {
+	height: 1px;
+	margin: 12px 12px;
+	background: var(--line);
 }
 
 /* Borderless rail sitting straight on the canvas, like the mock. */

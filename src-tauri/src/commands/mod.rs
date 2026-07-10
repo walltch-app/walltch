@@ -6,7 +6,7 @@ use walltch_core::addon::{MetaDetail, MetaPreview, StreamSource};
 
 use walltch_core::library::{LibraryItem, WatchProgress};
 
-use crate::adapters::torrent::{EngineConfig, ResolvedStream};
+use crate::adapters::torrent::{DownloadEntry, EngineConfig, ResolvedStream};
 use crate::adapters::TorrentEngine;
 use crate::state::{
     AddonStream, AddonSubtitle, AppState, CacheMode, CatalogDescriptor, InstalledAddon,
@@ -154,6 +154,18 @@ pub async fn remove_continue_watching(
         .remove_continue_watching(&meta_id)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn list_downloads(
+    engine: State<'_, TorrentEngine>,
+) -> Result<Vec<DownloadEntry>, String> {
+    Ok(engine.list_downloads())
+}
+
+#[tauri::command]
+pub async fn delete_download(engine: State<'_, TorrentEngine>, name: String) -> Result<(), String> {
+    engine.delete_download(&name).map_err(|e| e.to_string())
 }
 
 /// MB/s from settings to the bytes-per-second the torrent engine wants.

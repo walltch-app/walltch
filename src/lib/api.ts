@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { AddonStream } from "./bindings/AddonStream";
 import type { AddonSubtitle } from "./bindings/AddonSubtitle";
 import type { CatalogDescriptor } from "./bindings/CatalogDescriptor";
+import type { DownloadEntry } from "./bindings/DownloadEntry";
 import type { InstalledAddon } from "./bindings/InstalledAddon";
 import type { LibraryItem } from "./bindings/LibraryItem";
 import type { MetaDetail } from "./bindings/MetaDetail";
@@ -108,4 +109,12 @@ export function setSettings(settings: Settings): Promise<void> {
 /** Full order of transport urls; addons are resolved in this order. */
 export function reorderAddons(order: string[]): Promise<void> {
 	return invoke("reorder_addons", { order });
+}
+
+export function listDownloads(): Promise<DownloadEntry[]> {
+	return invoke("list_downloads");
+}
+
+export function deleteDownload(name: string): Promise<void> {
+	return invoke("delete_download", { name });
 }

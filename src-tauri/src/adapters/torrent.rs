@@ -23,6 +23,29 @@ pub struct ResolvedStream {
     pub file_name: Option<String>,
 }
 
+/// One entry in the download cache, as shown on the downloads page.
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadEntry {
+    pub name: String,
+    pub size_bytes: u64,
+}
+
+fn path_size(path: &std::path::Path) -> u64 {
+    if path.is_file() {
+        return path.metadata().map(|m| m.len()).unwrap_or(0);
+    }
+    std::fs::read_dir(path)
+        .map(|entries| {
+            entries
+                .flatten()
+                .map(|entry| path_size(&entry.path()))
+                .sum()
+        })
+        .unwrap_or(0)
+}
+
 /// How the torrent session should behave; derived from user settings.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct EngineConfig {
@@ -61,6 +84,49 @@ impl TorrentEngine {
             download_dir,
             state: OnceCell::new(),
         }
+    }
+
+    /// What's sitting in the download cache right now.
+    pub fn list_downloads(&self) -> Vec<DownloadEntry> {
+        let Ok(entries) = std::fs::read_dir(&self.download_dir) else {
+            return Vec::new();
+        };
+        let mut list: Vec<DownloadEntry> = entries
+            .flatten()
+            .filter_map(|entry| {
+                let name = entry.file_name().to_string_lossy().into_owned();
+                // Session bookkeeping files aren't downloads.
+                if name.ends_with(".json") {
+                    return None;
+                }
+                Some(DownloadEntry {
+                    size_bytes: path_size(&entry.path()),
+                    name,
+                })
+            })
+            .collect();
+        list.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes));
+        list
+    }
+
+    /// Delete one cached download. `name` must be a plain entry name; if the
+    /// torrent is still streaming, playback will fail and that's on the user.
+    pub fn delete_download(&self, name: &str) -> anyhow::Result<()> {
+        if name.is_empty()
+            || name == "."
+            || name == ".."
+            || name.contains('/')
+            || name.contains('\\')
+        {
+            anyhow::bail!("invalid download name");
+        }
+        let path = self.download_dir.join(name);
+        if path.is_dir() {
+            std::fs::remove_dir_all(&path)?;
+        } else if path.exists() {
+            std::fs::remove_file(&path)?;
+        }
+        Ok(())
     }
 
     /// Session-level knobs; they apply when the session first starts, so

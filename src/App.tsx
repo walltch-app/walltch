@@ -6,8 +6,11 @@ import DetailPage from "./features/detail/DetailPage";
 import CatalogPage from "./features/discover/CatalogPage";
 import DiscoverPage from "./features/discover/DiscoverPage";
 import TypeBoardPage from "./features/discover/TypeBoardPage";
+import DownloadsPage from "./features/downloads/DownloadsPage";
+import ContinuePage from "./features/library/ContinuePage";
 import LibraryPage from "./features/library/LibraryPage";
 import PlayerPage from "./features/player/PlayerPage";
+import ProfilePage from "./features/profile/ProfilePage";
 import SettingsPage from "./features/settings/SettingsPage";
 import { getSettings } from "./lib/api";
 import { applyAccent } from "./lib/theme";
@@ -26,12 +29,19 @@ function App() {
 					<Route index element={<DiscoverPage />} />
 					<Route
 						path="movies"
-						element={<TypeBoardPage contentType="movie" title="Movies" />}
+						element={<TypeBoardPage contentType="movie" title="Filmler" />}
 					/>
 					<Route
 						path="series"
-						element={<TypeBoardPage contentType="series" title="Series" />}
+						element={<TypeBoardPage contentType="series" title="Diziler" />}
 					/>
+					<Route
+						path="anime"
+						element={<TypeBoardPage contentType="anime" title="Animeler" />}
+					/>
+					<Route path="continue" element={<ContinuePage />} />
+					<Route path="downloads" element={<DownloadsPage />} />
+					<Route path="profile" element={<ProfilePage />} />
 					<Route path="catalog" element={<CatalogPage />} />
 					<Route path="library" element={<LibraryPage />} />
 					<Route path="addons" element={<AddonsPage />} />

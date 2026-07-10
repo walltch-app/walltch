@@ -54,6 +54,8 @@ pub fn run() {
             commands::get_settings,
             commands::set_settings,
             commands::reorder_addons,
+            commands::list_downloads,
+            commands::delete_download,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
