@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { getCatalog } from "../../lib/api";
 import type { CatalogDescriptor } from "../../lib/bindings/CatalogDescriptor";
@@ -26,6 +27,84 @@ function PosterCard({ meta }: { meta: MetaPreview }) {
 }
 
 const SKELETON_KEYS = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
+export function PosterStrip({ children }: { children: React.ReactNode }) {
+	const stripRef = useRef<HTMLDivElement>(null);
+	const [canLeft, setCanLeft] = useState(false);
+	const [canRight, setCanRight] = useState(false);
+
+	const updateArrows = useCallback(() => {
+		const el = stripRef.current;
+		if (!el) return;
+		setCanLeft(el.scrollLeft > 4);
+		setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+	}, []);
+
+	// Content size changes (posters loading in) should re-evaluate arrows.
+	useEffect(() => {
+		const el = stripRef.current;
+		if (!el) return;
+		updateArrows();
+		const observer = new ResizeObserver(updateArrows);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [updateArrows]);
+
+	// Vertical wheel scrolls the strip horizontally while it has room; once
+	// the strip is at its end the page scrolls normally again.
+	useEffect(() => {
+		const el = stripRef.current;
+		if (!el) return;
+		const onWheel = (event: WheelEvent) => {
+			if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+			const atStart = el.scrollLeft <= 0 && event.deltaY < 0;
+			const atEnd =
+				el.scrollLeft + el.clientWidth >= el.scrollWidth - 1 &&
+				event.deltaY > 0;
+			if (atStart || atEnd) return;
+			event.preventDefault();
+			el.scrollLeft += event.deltaY;
+		};
+		el.addEventListener("wheel", onWheel, { passive: false });
+		return () => el.removeEventListener("wheel", onWheel);
+	}, []);
+
+	const nudge = (direction: -1 | 1) => {
+		const el = stripRef.current;
+		el?.scrollBy({
+			left: direction * el.clientWidth * 0.85,
+			behavior: "smooth",
+		});
+	};
+
+	return (
+		<div className="strip-wrap">
+			<div className="poster-strip" ref={stripRef} onScroll={updateArrows}>
+				{children}
+			</div>
+			{canLeft && (
+				<button
+					type="button"
+					className="strip-nav strip-nav-left"
+					onClick={() => nudge(-1)}
+					aria-label="Scroll left"
+				>
+					<ChevronLeft aria-hidden />
+				</button>
+			)}
+			{canRight && (
+				<button
+					type="button"
+					className="strip-nav strip-nav-right"
+					onClick={() => nudge(1)}
+					aria-label="Scroll right"
+				>
+					<ChevronRight aria-hidden />
+				</button>
+			)}
+		</div>
+	);
+}
 
 function CatalogRow({ catalog }: { catalog: CatalogDescriptor }) {
 	const [metas, setMetas] = useState<MetaPreview[] | null>(null);
@@ -73,13 +152,13 @@ function CatalogRow({ catalog }: { catalog: CatalogDescriptor }) {
 			) : metas?.length === 0 ? (
 				<p className="row-note">This catalog is empty right now.</p>
 			) : (
-				<div className="poster-strip">
+				<PosterStrip>
 					{metas
 						? metas.map((meta) => <PosterCard key={meta.id} meta={meta} />)
 						: SKELETON_KEYS.map((key) => (
 								<div key={key} className="poster-skeleton" />
 							))}
-				</div>
+				</PosterStrip>
 			)}
 		</section>
 	);

@@ -27,16 +27,64 @@
 	font-size: 0.875rem;
 }
 
+.strip-wrap {
+	position: relative;
+}
+
 .poster-strip {
 	display: flex;
 	gap: 14px;
 	overflow-x: auto;
 	padding: 4px 4px 10px;
 	margin: -4px -4px 0;
+	scrollbar-width: none;
 }
 
 .poster-strip::-webkit-scrollbar {
-	height: 8px;
+	display: none;
+}
+
+.strip-nav {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-70%);
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	border: 1px solid var(--line);
+	border-radius: 50%;
+	background: rgba(13, 17, 27, 0.88);
+	color: var(--text);
+	cursor: pointer;
+	opacity: 0;
+	transition:
+		opacity 140ms ease,
+		border-color 140ms ease;
+}
+
+.strip-wrap:hover .strip-nav,
+.strip-nav:focus-visible {
+	opacity: 1;
+}
+
+.strip-nav:hover {
+	border-color: var(--accent);
+}
+
+.strip-nav svg {
+	width: 20px;
+	height: 20px;
+}
+
+.strip-nav-left {
+	left: -12px;
+}
+
+.strip-nav-right {
+	right: -12px;
 }
 
 .poster {
