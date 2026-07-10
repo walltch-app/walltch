@@ -26,8 +26,10 @@ body,
 	height: 100%;
 }
 
+/* The window itself is transparent so mpv can render behind the webview on
+   the player route; every normal surface paints its own background. */
 body {
-	background: var(--bg);
+	background: transparent;
 	color: var(--text);
 	font-family: var(--font-body);
 	font-size: 15px;
@@ -68,6 +70,7 @@ textarea {
 .shell {
 	display: flex;
 	height: 100%;
+	background: var(--bg);
 }
 
 .sidebar {

@@ -1,6 +1,9 @@
 # Rust
 target/
 
+# Fetched native libraries (bunx tauri-plugin-libmpv-api setup-lib)
+src-tauri/lib/
+
 # Env
 .env
 .env.*
