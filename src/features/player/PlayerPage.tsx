@@ -477,6 +477,12 @@ function MpvPlayer({
 				case "f":
 					toggleFullscreen();
 					break;
+				case "Escape":
+					getCurrentWindow()
+						.setFullscreen(false)
+						.catch(() => {});
+					setFullscreen(false);
+					break;
 			}
 		};
 		window.addEventListener("keydown", onKey);
@@ -566,7 +572,7 @@ function MpvPlayer({
 				onKeyDown={() => {}}
 			/>
 
-			<div className="player-topbar">
+			<div className="player-topbar" data-tauri-drag-region>
 				<button
 					type="button"
 					className="icon-btn"

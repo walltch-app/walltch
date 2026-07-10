@@ -111,8 +111,63 @@ textarea {
 .topbar {
 	display: flex;
 	align-items: center;
-	gap: 28px;
-	padding: 6px 12px 14px;
+	gap: 24px;
+	padding: 6px 4px 14px 12px;
+}
+
+.avatar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	flex-shrink: 0;
+	border: 1px solid var(--line);
+	border-radius: 50%;
+	background: var(--gradient);
+	color: #fff;
+}
+
+.avatar svg {
+	width: 16px;
+	height: 16px;
+}
+
+.win-controls {
+	display: flex;
+	gap: 2px;
+	margin-left: 6px;
+}
+
+.win-controls button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 30px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--muted);
+	cursor: pointer;
+	transition:
+		background-color 120ms ease,
+		color 120ms ease;
+}
+
+.win-controls button:hover {
+	background: var(--surface-2);
+	color: var(--text);
+}
+
+.win-controls .win-close:hover {
+	background: #e81123;
+	color: #fff;
+}
+
+.win-controls svg {
+	width: 15px;
+	height: 15px;
 }
 
 .topbar-search {

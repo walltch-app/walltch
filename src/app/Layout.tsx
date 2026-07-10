@@ -1,13 +1,17 @@
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
 	Bookmark,
 	ChevronLeft,
 	ChevronRight,
 	Clapperboard,
 	Compass,
+	Minus,
 	Puzzle,
 	Search,
 	Settings,
+	Square,
 	Tv,
+	User,
 	X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -99,15 +103,45 @@ function Layout() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, []);
 
+	const win = getCurrentWindow();
+
 	return (
 		<div className="shell">
-			<header className="topbar">
+			{/* Frameless window: the topbar doubles as the titlebar. */}
+			<header className="topbar" data-tauri-drag-region>
 				<div className="brand">
 					<img src="/logo.png" alt="" />
 					<span>Walltch</span>
 				</div>
 				<TopbarSearch />
-				<div className="topbar-spacer" />
+				<div className="topbar-spacer" data-tauri-drag-region />
+				<div className="avatar" title="Profil">
+					<User aria-hidden />
+				</div>
+				<div className="win-controls">
+					<button
+						type="button"
+						onClick={() => win.minimize()}
+						aria-label="Simge durumuna küçült"
+					>
+						<Minus aria-hidden />
+					</button>
+					<button
+						type="button"
+						onClick={() => win.toggleMaximize()}
+						aria-label="Ekranı kapla"
+					>
+						<Square aria-hidden />
+					</button>
+					<button
+						type="button"
+						className="win-close"
+						onClick={() => win.close()}
+						aria-label="Kapat"
+					>
+						<X aria-hidden />
+					</button>
+				</div>
 			</header>
 			<div className="shell-body">
 				<aside className={collapsed ? "sidebar sidebar-min" : "sidebar"}>
