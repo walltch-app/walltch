@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { getCatalog } from "../../lib/api";
 import type { CatalogDescriptor } from "../../lib/bindings/CatalogDescriptor";
 import type { MetaPreview } from "../../lib/bindings/MetaPreview";
@@ -132,6 +132,7 @@ export function PosterStrip({ children }: { children: React.ReactNode }) {
 }
 
 function CatalogRow({ catalog }: { catalog: CatalogDescriptor }) {
+	const navigate = useNavigate();
 	const [metas, setMetas] = useState<MetaPreview[] | null>(null);
 	const [failed, setFailed] = useState(false);
 	const [visible, setVisible] = useState(false);
@@ -167,7 +168,14 @@ function CatalogRow({ catalog }: { catalog: CatalogDescriptor }) {
 	return (
 		<section ref={rowRef} className="catalog-row">
 			<header>
-				<h2>{title}</h2>
+				<button
+					type="button"
+					className="row-title-btn"
+					onClick={() => navigate("/catalog", { state: catalog })}
+				>
+					<h2>{title}</h2>
+					<ChevronRight aria-hidden />
+				</button>
 				<span className="row-chip">{catalog.type}</span>
 			</header>
 			{failed ? (

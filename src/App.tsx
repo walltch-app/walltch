@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router";
 import Layout from "./app/Layout";
 import AddonsPage from "./features/addons/AddonsPage";
 import DetailPage from "./features/detail/DetailPage";
+import CatalogPage from "./features/discover/CatalogPage";
 import DiscoverPage from "./features/discover/DiscoverPage";
 import LibraryPage from "./features/library/LibraryPage";
 import PlayerPage from "./features/player/PlayerPage";
@@ -22,6 +23,7 @@ function App() {
 			<Routes>
 				<Route element={<Layout />}>
 					<Route index element={<DiscoverPage />} />
+					<Route path="catalog" element={<CatalogPage />} />
 					<Route path="library" element={<LibraryPage />} />
 					<Route path="addons" element={<AddonsPage />} />
 					<Route path="detail/:type/:id" element={<DetailPage />} />
