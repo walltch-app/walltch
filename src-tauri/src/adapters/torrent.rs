@@ -5,7 +5,10 @@ use std::sync::Arc;
 use anyhow::Context;
 use librqbit::http_api::{HttpApi, HttpApiOptions};
 use librqbit::limits::LimitsConfig;
+use librqbit::storage::StorageFactoryExt;
 use librqbit::{AddTorrent, AddTorrentOptions, Api, Session, SessionOptions};
+
+use super::ram_storage::RamStorageFactory;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::Serialize;
 use tokio::sync::OnceCell;
@@ -18,6 +21,13 @@ pub struct ResolvedStream {
     /// Directly playable URL (remote for http streams, local for torrents).
     pub play_url: String,
     pub file_name: Option<String>,
+}
+
+/// How the torrent session should behave; derived from user settings.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct EngineConfig {
+    pub ratelimits: LimitsConfig,
+    pub ram_storage: bool,
 }
 
 /// Lazily started librqbit session plus its local streaming server.
@@ -53,9 +63,9 @@ impl TorrentEngine {
         }
     }
 
-    /// Rate limits apply when the session first starts; changing them later
-    /// takes effect on the next app launch.
-    async fn engine(&self, ratelimits: LimitsConfig) -> anyhow::Result<&EngineState> {
+    /// Session-level knobs; they apply when the session first starts, so
+    /// changing them later takes effect on the next app launch.
+    async fn engine(&self, config: EngineConfig) -> anyhow::Result<&EngineState> {
         self.state
             .get_or_try_init(|| async {
                 tokio::fs::create_dir_all(&self.download_dir)
@@ -64,7 +74,12 @@ impl TorrentEngine {
                 let session = Session::new_with_opts(
                     self.download_dir.clone(),
                     SessionOptions {
-                        ratelimits,
+                        ratelimits: config.ratelimits,
+                        // RAM mode: pieces live in a bounded in-memory window
+                        // and nothing is written to disk.
+                        default_storage_factory: config
+                            .ram_storage
+                            .then(|| RamStorageFactory.boxed()),
                         ..Default::default()
                     },
                 )
@@ -105,9 +120,9 @@ impl TorrentEngine {
         info_hash: &str,
         file_idx: Option<u32>,
         sources: &[String],
-        ratelimits: LimitsConfig,
+        config: EngineConfig,
     ) -> anyhow::Result<ResolvedStream> {
-        let engine = self.engine(ratelimits).await?;
+        let engine = self.engine(config).await?;
         let magnet = build_magnet(info_hash, sources);
         let opts = AddTorrentOptions {
             only_files: file_idx.map(|idx| vec![idx as usize]),

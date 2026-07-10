@@ -5529,6 +5529,7 @@ dependencies = [
  "async-trait",
  "futures",
  "librqbit",
+ "librqbit-core",
  "percent-encoding",
  "reqwest 0.12.28",
  "serde",

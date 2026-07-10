@@ -77,6 +77,20 @@ pub struct AddonSubtitle {
     pub subtitle: Subtitle,
 }
 
+/// Where torrent data lives while streaming.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "kebab-case")]
+pub enum CacheMode {
+    /// Downloads stay on disk; rewatching starts instantly.
+    #[default]
+    Keep,
+    /// Downloads go to disk but are wiped when the app exits.
+    Temp,
+    /// Nothing touches the disk; a bounded in-memory window holds pieces.
+    Ram,
+}
+
 /// User preferences. `default` on the container keeps old settings files
 /// working when new fields appear.
 #[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
@@ -95,6 +109,8 @@ pub struct Settings {
     pub download_limit_mbps: f64,
     /// Torrent upload cap in MB/s; 0 means unlimited.
     pub upload_limit_mbps: f64,
+    /// Where stream data is cached.
+    pub cache_mode: CacheMode,
 }
 
 impl Default for Settings {
@@ -106,6 +122,7 @@ impl Default for Settings {
             subtitle_scale: 1.0,
             download_limit_mbps: 0.0,
             upload_limit_mbps: 0.0,
+            cache_mode: CacheMode::Keep,
         }
     }
 }

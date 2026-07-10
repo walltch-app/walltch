@@ -6,11 +6,11 @@ use walltch_core::addon::{MetaDetail, MetaPreview, StreamSource};
 
 use walltch_core::library::{LibraryItem, WatchProgress};
 
-use crate::adapters::torrent::ResolvedStream;
+use crate::adapters::torrent::{EngineConfig, ResolvedStream};
 use crate::adapters::TorrentEngine;
 use crate::state::{
-    AddonStream, AddonSubtitle, AppState, CatalogDescriptor, InstalledAddon, ProgressUpdate,
-    Settings, WatchlistToggle,
+    AddonStream, AddonSubtitle, AppState, CacheMode, CatalogDescriptor, InstalledAddon,
+    ProgressUpdate, Settings, WatchlistToggle,
 };
 
 #[tauri::command]
@@ -180,12 +180,15 @@ pub async fn resolve_stream(
             sources,
         } => {
             let settings = state.settings().await;
-            let ratelimits = librqbit::limits::LimitsConfig {
-                download_bps: to_bps(settings.download_limit_mbps),
-                upload_bps: to_bps(settings.upload_limit_mbps),
+            let config = EngineConfig {
+                ratelimits: librqbit::limits::LimitsConfig {
+                    download_bps: to_bps(settings.download_limit_mbps),
+                    upload_bps: to_bps(settings.upload_limit_mbps),
+                },
+                ram_storage: settings.cache_mode == CacheMode::Ram,
             };
             engine
-                .stream_torrent(&info_hash, file_idx, &sources, ratelimits)
+                .stream_torrent(&info_hash, file_idx, &sources, config)
                 .await
                 .map_err(|e| format!("{e:#}"))
         }

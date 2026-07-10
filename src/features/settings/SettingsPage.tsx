@@ -1,9 +1,32 @@
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSettings, setSettings } from "../../lib/api";
+import type { CacheMode } from "../../lib/bindings/CacheMode";
 import type { Settings } from "../../lib/bindings/Settings";
 import { ACCENTS, type AccentId, applyAccent } from "../../lib/theme";
 import "./settings.css";
+
+const CACHE_MODES: {
+	id: CacheMode;
+	label: string;
+	hint: string;
+}[] = [
+	{
+		id: "keep",
+		label: "Disk — keep downloads",
+		hint: "Streams are saved and stay on disk; rewatching starts instantly, but the cache grows until you clear it.",
+	},
+	{
+		id: "temp",
+		label: "Disk — clear on exit",
+		hint: "Streams buffer to disk while you watch and everything is wiped when the app closes.",
+	},
+	{
+		id: "ram",
+		label: "Memory only",
+		hint: "Nothing touches the disk: a 512 MB window is held in RAM. Seeking far back re-buffers. Experimental.",
+	},
+];
 
 function SettingsPage() {
 	const [settings, setLocal] = useState<Settings | null>(null);
@@ -117,6 +140,34 @@ function SettingsPage() {
 									onClick={() => update({ ...settings, subtitleScale: scale })}
 								>
 									{label}
+								</button>
+							))}
+						</div>
+					</section>
+
+					<section className="settings-section">
+						<h2>Stream storage</h2>
+						<p className="settings-hint">
+							Where stream data lives while you watch. Applies from the next app
+							launch.
+						</p>
+						<div className="cache-options">
+							{CACHE_MODES.map((mode) => (
+								<button
+									type="button"
+									key={mode.id}
+									className={
+										settings.cacheMode === mode.id
+											? "cache-option cache-active"
+											: "cache-option"
+									}
+									onClick={() => update({ ...settings, cacheMode: mode.id })}
+								>
+									<span className="cache-label">
+										{mode.label}
+										{settings.cacheMode === mode.id && <Check aria-hidden />}
+									</span>
+									<span className="cache-hint">{mode.hint}</span>
 								</button>
 							))}
 						</div>

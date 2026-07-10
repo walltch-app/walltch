@@ -33,6 +33,9 @@ ts-rs = { version = "12", features = ["serde-compat"] }
 # tracing-subscriber-utils is required by http-api's logging handler;
 # without it librqbit 8.1 doesn't compile.
 librqbit = { version = "8", features = ["http-api", "tracing-subscriber-utils"] }
+# For Lengths/ValidPieceIndex in the RAM storage backend (must stay in
+# lockstep with the librqbit-core version librqbit itself uses).
+librqbit-core = "5"
 anyhow = "1.0.103"
 percent-encoding = "2"
 tauri-plugin-libmpv = "0.3.2"

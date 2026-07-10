@@ -2,6 +2,7 @@
 
 pub mod clock;
 pub mod http;
+pub mod ram_storage;
 pub mod storage;
 pub mod torrent;
 
