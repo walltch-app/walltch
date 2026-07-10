@@ -32,7 +32,7 @@ function TrendingRail({ catalogs }: { catalogs: CatalogDescriptor[] | null }) {
 		<aside className="home-rail">
 			<div className="rail-card">
 				<header>
-					<TrendingUp aria-hidden />
+					<TrendingUp aria-hidden className="rail-icon" />
 					<h3>Trending</h3>
 				</header>
 				<ul className="rail-list">

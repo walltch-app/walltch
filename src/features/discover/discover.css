@@ -44,7 +44,7 @@
 	margin-bottom: 14px;
 }
 
-.rail-card header svg {
+.rail-icon {
 	width: 16px;
 	height: 16px;
 	color: var(--accent-2);
