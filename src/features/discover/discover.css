@@ -6,7 +6,7 @@
 	border-radius: 20px;
 	overflow: hidden;
 	background-size: cover;
-	background-position: center 22%;
+	background-position: center;
 	background-color: var(--surface);
 	border: 1px solid var(--line);
 	box-shadow:
@@ -14,17 +14,26 @@
 		0 26px 60px rgba(0, 0, 0, 0.4);
 }
 
+/* Long multi-stop ramps so the shading melts into the artwork instead of
+   sitting on it like a slab. */
 .billboard-scrim {
 	position: absolute;
 	inset: 0;
 	background:
 		linear-gradient(
 			90deg,
-			rgba(13, 16, 26, 0.92) 0%,
-			rgba(13, 16, 26, 0.5) 48%,
-			transparent 78%
+			rgba(13, 16, 26, 0.9) 0%,
+			rgba(13, 16, 26, 0.72) 22%,
+			rgba(13, 16, 26, 0.42) 44%,
+			rgba(13, 16, 26, 0.14) 64%,
+			transparent 85%
 		),
-		linear-gradient(0deg, rgba(13, 16, 26, 0.82), transparent 50%);
+		linear-gradient(
+			0deg,
+			rgba(13, 16, 26, 0.85) 0%,
+			rgba(13, 16, 26, 0.35) 30%,
+			transparent 58%
+		);
 }
 
 .billboard-content {
