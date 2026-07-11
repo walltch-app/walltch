@@ -210,6 +210,7 @@ function DetailPage() {
 									contentType: type,
 									name: meta.name,
 									poster: meta.poster,
+									background: meta.background,
 								}}
 							/>
 						)}
@@ -230,6 +231,7 @@ function DetailPage() {
 							contentType: type,
 							name: meta.name,
 							poster: meta.poster,
+							background: meta.background,
 						}}
 					/>
 				)}

@@ -158,6 +158,7 @@ pub struct ProgressUpdate {
     pub r#type: String,
     pub name: String,
     pub poster: Option<String>,
+    pub background: Option<String>,
     pub position_secs: f64,
     pub duration_secs: f64,
 }
@@ -418,6 +419,7 @@ impl AppState {
             r#type: update.r#type,
             name: update.name,
             poster: update.poster,
+            background: update.background,
             position_secs: update.position_secs,
             duration_secs: update.duration_secs,
             updated_at_ms,
@@ -760,6 +762,7 @@ mod tests {
                 r#type: "series".into(),
                 name: "Some Show".into(),
                 poster: None,
+                background: None,
                 position_secs: 421.0,
                 duration_secs: 2400.0,
             })

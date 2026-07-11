@@ -57,6 +57,7 @@ export type PlayContext = {
 	contentType: string;
 	name: string;
 	poster: string | null;
+	background: string | null;
 };
 
 export type PlayerLocationState = {
@@ -161,6 +162,7 @@ function useProgressSaver(context: PlayContext | null) {
 			type: context.contentType,
 			name: context.name,
 			poster: context.poster,
+			background: context.background,
 			positionSecs: position,
 			durationSecs: duration,
 		}).catch(() => {

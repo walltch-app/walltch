@@ -12,4 +12,9 @@ metaId: string,
 /**
  * The concrete video ("tt0903747:1:3"; same as meta_id for movies).
  */
-videoId: string, type: string, name: string, poster: string | null, positionSecs: number, durationSecs: number, updatedAtMs: bigint, };
+videoId: string, type: string, name: string, poster: string | null, 
+/**
+ * Landscape artwork for the card. Portrait posters crop badly into a
+ * wide frame, so a backdrop is preferred when the addon provides one.
+ */
+background: string | null, positionSecs: number, durationSecs: number, updatedAtMs: bigint, };

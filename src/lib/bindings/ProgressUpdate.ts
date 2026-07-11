@@ -3,4 +3,4 @@
 /**
  * Fields the frontend reports while playing; the timestamp is added here.
  */
-export type ProgressUpdate = { metaId: string, videoId: string, type: string, name: string, poster: string | null, positionSecs: number, durationSecs: number, };
+export type ProgressUpdate = { metaId: string, videoId: string, type: string, name: string, poster: string | null, background: string | null, positionSecs: number, durationSecs: number, };

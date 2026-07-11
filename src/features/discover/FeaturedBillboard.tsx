@@ -88,6 +88,7 @@ function FeaturedBillboard({ catalog }: { catalog: CatalogDescriptor }) {
 					contentType: featured.type,
 					name: featured.name,
 					poster: featured.poster,
+					background: featured.background,
 				},
 			};
 			navigate("/player", { state });

@@ -20,6 +20,10 @@ pub struct WatchProgress {
     pub name: String,
     #[serde(default)]
     pub poster: Option<String>,
+    /// Landscape artwork for the card. Portrait posters crop badly into a
+    /// wide frame, so a backdrop is preferred when the addon provides one.
+    #[serde(default)]
+    pub background: Option<String>,
     pub position_secs: f64,
     pub duration_secs: f64,
     pub updated_at_ms: u64,
@@ -128,6 +132,7 @@ mod tests {
             r#type: "series".to_owned(),
             name: meta_id.to_owned(),
             poster: None,
+            background: None,
             position_secs: position,
             duration_secs: 100.0,
             updated_at_ms: 0,
