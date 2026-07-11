@@ -83,14 +83,19 @@ export const PosterStrip = forwardRef<
 	const stripRef = useRef<HTMLDivElement>(null);
 	const onEdgesRef = useRef(onEdges);
 	onEdgesRef.current = onEdges;
+	// Fade whichever edge still has content behind it, so a half-cut poster
+	// melts out instead of ending on a hard vertical slice.
+	const [edges, setEdges] = useState<StripEdges>({ left: false, right: false });
 
 	const updateArrows = useCallback(() => {
 		const el = stripRef.current;
 		if (!el) return;
-		onEdgesRef.current?.({
+		const next = {
 			left: el.scrollLeft > 4,
 			right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
-		});
+		};
+		setEdges(next);
+		onEdgesRef.current?.(next);
 	}, []);
 
 	// Content size changes (posters loading in) should re-evaluate arrows.
@@ -117,9 +122,22 @@ export const PosterStrip = forwardRef<
 		[],
 	);
 
+	const fade =
+		edges.left && edges.right
+			? "both"
+			: edges.right
+				? "right"
+				: edges.left
+					? "left"
+					: "";
+
 	return (
 		<div className="strip-wrap">
-			<div className="poster-strip" ref={stripRef} onScroll={updateArrows}>
+			<div
+				className={fade ? `poster-strip strip-fade-${fade}` : "poster-strip"}
+				ref={stripRef}
+				onScroll={updateArrows}
+			>
 				{children}
 			</div>
 		</div>

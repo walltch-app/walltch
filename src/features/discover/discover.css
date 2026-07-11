@@ -203,6 +203,40 @@
 	display: none;
 }
 
+/* When content runs off an edge, feather it so the clipped poster fades out
+   rather than ending on a hard slice; the crisp edge returns once you reach
+   the end and there's nothing more to hint at. */
+.poster-strip.strip-fade-right {
+	-webkit-mask-image: linear-gradient(
+		90deg,
+		#000 calc(100% - 90px),
+		transparent
+	);
+	mask-image: linear-gradient(90deg, #000 calc(100% - 90px), transparent);
+}
+
+.poster-strip.strip-fade-left {
+	-webkit-mask-image: linear-gradient(90deg, transparent, #000 90px);
+	mask-image: linear-gradient(90deg, transparent, #000 90px);
+}
+
+.poster-strip.strip-fade-both {
+	-webkit-mask-image: linear-gradient(
+		90deg,
+		transparent,
+		#000 90px,
+		#000 calc(100% - 90px),
+		transparent
+	);
+	mask-image: linear-gradient(
+		90deg,
+		transparent,
+		#000 90px,
+		#000 calc(100% - 90px),
+		transparent
+	);
+}
+
 /* Header arrows, mock style: small circles on the row's right edge. */
 .row-actions {
 	display: flex;
