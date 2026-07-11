@@ -80,6 +80,7 @@ pub fn run() {
             commands::auth_status,
             commands::sign_up,
             commands::sign_in,
+            commands::sign_in_with_google,
             commands::sign_out,
         ])
         .build(tauri::generate_context!())

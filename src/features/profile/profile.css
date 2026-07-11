@@ -182,6 +182,50 @@
 	font-size: 0.85rem;
 }
 
+.google-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 11px 16px;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: #fff;
+	color: #1f1f1f;
+	font-family: var(--font-body);
+	font-size: 0.92rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition:
+		filter 120ms ease,
+		box-shadow 120ms ease;
+}
+
+.google-btn:hover:not(:disabled) {
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.google-btn:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.auth-divider {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	color: var(--muted);
+	font-size: 0.78rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+	content: "";
+	flex: 1;
+	height: 1px;
+	background: var(--line);
+}
+
 .auth-in {
 	flex-direction: row;
 	align-items: center;

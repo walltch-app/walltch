@@ -8,6 +8,7 @@ import {
 } from "react";
 import {
 	signIn as apiSignIn,
+	signInWithGoogle as apiSignInWithGoogle,
 	signOut as apiSignOut,
 	signUp as apiSignUp,
 	authStatus,
@@ -18,6 +19,7 @@ type AuthContextValue = {
 	status: AuthStatus | null;
 	signIn: (email: string, password: string) => Promise<AuthStatus>;
 	signUp: (email: string, password: string) => Promise<AuthStatus>;
+	signInWithGoogle: () => Promise<AuthStatus>;
 	signOut: () => Promise<void>;
 };
 
@@ -27,6 +29,9 @@ const AuthContext = createContext<AuthContextValue>({
 		throw new Error("auth not ready");
 	},
 	signUp: async () => {
+		throw new Error("auth not ready");
+	},
+	signInWithGoogle: async () => {
 		throw new Error("auth not ready");
 	},
 	signOut: async () => {},
@@ -56,6 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				// A confirmation-needed result isn't a signed-in session; only
 				// reflect it as status when we're actually in.
 				if (next.signedIn) setStatus(next);
+				return next;
+			},
+			signInWithGoogle: async () => {
+				const next = await apiSignInWithGoogle();
+				setStatus(next);
 				return next;
 			},
 			signOut: async () => {

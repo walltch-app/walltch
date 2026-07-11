@@ -181,6 +181,11 @@ export function signIn(email: string, password: string): Promise<AuthStatus> {
 	return invoke("sign_in", { email, password });
 }
 
+/** Opens the browser for Google sign-in; resolves once you're back. */
+export function signInWithGoogle(): Promise<AuthStatus> {
+	return invoke("sign_in_with_google");
+}
+
 export function signOut(): Promise<void> {
 	return invoke("sign_out");
 }

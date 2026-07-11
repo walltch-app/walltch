@@ -230,6 +230,14 @@ pub async fn sign_in(
 }
 
 #[tauri::command]
+pub async fn sign_in_with_google(
+    app: tauri::AppHandle,
+    auth: State<'_, Arc<SupabaseAuth>>,
+) -> Result<AuthStatus, String> {
+    auth.sign_in_with_google(&app).await
+}
+
+#[tauri::command]
 pub async fn sign_out(auth: State<'_, Arc<SupabaseAuth>>) -> Result<(), String> {
     auth.sign_out().await
 }

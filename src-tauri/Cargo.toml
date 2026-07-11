@@ -28,7 +28,11 @@ async-trait = "0.1"
 futures = "0.3"
 reqwest = "0.12"
 thiserror = "2"
-tokio = { version = "1", features = ["fs"] }
+tokio = { version = "1", features = ["fs", "net", "io-util", "time"] }
+# PKCE for the Google OAuth loopback flow.
+sha2 = "0.10"
+base64 = "0.21"
+getrandom = "0.2"
 ts-rs = { version = "12", features = ["serde-compat"] }
 # tracing-subscriber-utils is required by http-api's logging handler;
 # without it librqbit 8.1 doesn't compile.
