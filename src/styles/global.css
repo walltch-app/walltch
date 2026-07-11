@@ -541,6 +541,15 @@ a.avatar:hover {
 	text-overflow: ellipsis;
 }
 
+.friend-rail-time {
+	flex-shrink: 0;
+	align-self: flex-start;
+	margin-top: 2px;
+	color: var(--muted);
+	font-size: 0.72rem;
+	white-space: nowrap;
+}
+
 /* The expand affordance: an icon pinned to the top of the collapsed rail.
    It fades in as the panel content fades out, so the swap is seamless. */
 .friend-rail-expand {

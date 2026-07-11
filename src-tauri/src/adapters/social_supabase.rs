@@ -292,7 +292,7 @@ impl SupabaseSocial {
             .rest(
                 Method::GET,
                 &format!(
-                    "activity?user_id=neq.{me}&select=user_id,meta_id,content_type,title,subtitle,poster,friend:profiles!user_id(display_name,avatar_color)&order=updated_at.desc"
+                    "activity?user_id=neq.{me}&select=user_id,meta_id,content_type,title,subtitle,poster,updated_at,friend:profiles!user_id(display_name,avatar_color)&order=updated_at.desc"
                 ),
                 None,
                 None,
@@ -352,7 +352,7 @@ fn activity_from_row(row: &Value) -> Option<FriendActivity> {
         poster: row["poster"].as_str().map(str::to_owned),
         meta_id: row["meta_id"].as_str().unwrap_or_default().to_owned(),
         content_type: row["content_type"].as_str().unwrap_or_default().to_owned(),
-        at_ms: 0,
+        updated_at: row["updated_at"].as_str().unwrap_or_default().to_owned(),
     })
 }
 

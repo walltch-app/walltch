@@ -11,4 +11,9 @@ title: string,
 /**
  * The line under it ("S1 · E3", or "Watching now").
  */
-subtitle: string, poster: string | null, metaId: string, contentType: string, atMs: bigint, };
+subtitle: string, poster: string | null, metaId: string, contentType: string, 
+/**
+ * ISO-8601 timestamp of when they last updated it; the UI turns this
+ * into a relative "2h ago".
+ */
+updatedAt: string, };

@@ -30,7 +30,9 @@ pub struct FriendActivity {
     pub poster: Option<String>,
     pub meta_id: String,
     pub content_type: String,
-    pub at_ms: u64,
+    /// ISO-8601 timestamp of when they last updated it; the UI turns this
+    /// into a relative "2h ago".
+    pub updated_at: String,
 }
 
 #[derive(Debug, Error)]
