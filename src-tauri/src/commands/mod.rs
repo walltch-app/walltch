@@ -8,6 +8,7 @@ use walltch_core::addon::{MetaDetail, MetaPreview, StreamSource};
 use walltch_core::library::{LibraryItem, WatchProgress};
 use walltch_core::social::{Friend, FriendActivity, Profile};
 
+use crate::adapters::social_supabase::ActivityInput;
 use crate::adapters::supabase::AuthStatus;
 use crate::adapters::torrent::{DownloadEntry, EngineConfig, ResolvedStream};
 use crate::adapters::{SupabaseAuth, SupabaseSocial, TorrentEngine};
@@ -187,6 +188,22 @@ pub async fn friend_activity(
         return Ok(Vec::new());
     }
     social.activity().await.map_err(|e| e.to_string())
+}
+
+// Signed out this is a no-op, so the player can call it unconditionally.
+#[tauri::command]
+pub async fn set_activity(
+    social: State<'_, Arc<SupabaseSocial>>,
+    auth: State<'_, Arc<SupabaseAuth>>,
+    activity: ActivityInput,
+) -> Result<(), String> {
+    if !auth.is_signed_in().await {
+        return Ok(());
+    }
+    social
+        .set_activity(activity)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

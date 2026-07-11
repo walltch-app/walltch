@@ -98,7 +98,11 @@ function FriendRail() {
 											{friend.displayName}
 										</span>
 										<span className="friend-rail-sub">
-											{now ? now.title : "Not watching right now"}
+											{now
+												? now.subtitle
+													? `${now.title} · ${now.subtitle}`
+													: now.title
+												: "Not watching right now"}
 										</span>
 									</div>
 								</li>

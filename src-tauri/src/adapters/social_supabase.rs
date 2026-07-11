@@ -7,10 +7,25 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use reqwest::{Client, Method, StatusCode};
+use serde::Deserialize;
 use serde_json::{json, Value};
 use walltch_core::social::{Friend, FriendActivity, Profile, SocialError};
 
 use super::supabase::{SupabaseAuth, SUPABASE_KEY, SUPABASE_URL};
+
+/// What the player reports when you start watching something.
+#[derive(Debug, Deserialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityInput {
+    pub meta_id: String,
+    pub content_type: String,
+    pub title: String,
+    pub subtitle: String,
+    pub poster: Option<String>,
+    /// ISO-8601 timestamp from the client, so the feed orders correctly.
+    pub updated_at: String,
+}
 
 pub struct SupabaseSocial {
     auth: Arc<SupabaseAuth>,
@@ -245,6 +260,27 @@ impl SupabaseSocial {
             &format!("friendships?user_id=eq.{id}&friend_id=eq.{me}"),
             None,
             None,
+        )
+        .await?;
+        Ok(())
+    }
+
+    /// Upsert my "currently watching" row (one per user, keyed on user_id).
+    pub async fn set_activity(&self, input: ActivityInput) -> Result<(), SocialError> {
+        let me = self.me().await?;
+        self.rest(
+            Method::POST,
+            "activity",
+            Some(json!({
+                "user_id": me,
+                "meta_id": input.meta_id,
+                "content_type": input.content_type,
+                "title": input.title,
+                "subtitle": input.subtitle,
+                "poster": input.poster,
+                "updated_at": input.updated_at,
+            })),
+            Some("resolution=merge-duplicates,return=minimal"),
         )
         .await?;
         Ok(())

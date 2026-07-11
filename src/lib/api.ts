@@ -2,6 +2,7 @@
 // generated from the Rust structs by ts-rs (`cargo test` regenerates them).
 
 import { invoke } from "@tauri-apps/api/core";
+import type { ActivityInput } from "./bindings/ActivityInput";
 import type { AddonStream } from "./bindings/AddonStream";
 import type { AddonSubtitle } from "./bindings/AddonSubtitle";
 import type { AuthStatus } from "./bindings/AuthStatus";
@@ -161,6 +162,11 @@ export function rejectFriend(id: string): Promise<void> {
 
 export function friendActivity(): Promise<FriendActivity[]> {
 	return invoke("friend_activity");
+}
+
+/** Report what you're watching; a no-op server-side when signed out. */
+export function setActivity(activity: ActivityInput): Promise<void> {
+	return invoke("set_activity", { activity });
 }
 
 export function authStatus(): Promise<AuthStatus> {

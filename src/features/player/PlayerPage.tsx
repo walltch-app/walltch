@@ -42,6 +42,7 @@ import {
 	getVideoProgress,
 	resolveStream,
 	saveProgress,
+	setActivity,
 } from "../../lib/api";
 import type { AddonStream } from "../../lib/bindings/AddonStream";
 import type { AddonSubtitle } from "../../lib/bindings/AddonSubtitle";
@@ -146,10 +147,34 @@ function formatTime(secs: number) {
 	return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
+/** For series the video id is "meta:season:episode"; make a short line. */
+function activitySubtitle(context: PlayContext) {
+	if (context.videoId.startsWith(`${context.metaId}:`)) {
+		const [season, episode] = context.videoId
+			.slice(context.metaId.length + 1)
+			.split(":");
+		if (episode) return `S${season} · E${episode}`;
+	}
+	return "Watching now";
+}
+
 function useProgressSaver(context: PlayContext | null) {
 	const positionRef = useRef(0);
 	const durationRef = useRef(0);
 	const lastSavedRef = useRef(0);
+
+	// Broadcast what you're watching to friends once per opened video.
+	useEffect(() => {
+		if (!context) return;
+		setActivity({
+			metaId: context.metaId,
+			contentType: context.contentType,
+			title: context.name,
+			subtitle: activitySubtitle(context),
+			poster: context.poster ?? context.background,
+			updatedAt: new Date().toISOString(),
+		}).catch(() => {});
+	}, [context]);
 
 	const persist = useCallback(() => {
 		if (!context) return;

@@ -76,6 +76,7 @@ pub fn run() {
             commands::accept_friend,
             commands::reject_friend,
             commands::friend_activity,
+            commands::set_activity,
             commands::auth_status,
             commands::sign_up,
             commands::sign_in,
