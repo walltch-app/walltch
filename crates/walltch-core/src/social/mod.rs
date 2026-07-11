@@ -3,6 +3,10 @@
 //! when a backend lands, `id` and `friend_code` become server-assigned and
 //! the rest syncs, without the UI above having to change shape.
 
+pub mod friends;
+
+pub use friends::{Friend, FriendActivity, FriendList, SocialBackend, SocialError};
+
 use serde::{Deserialize, Serialize};
 
 /// The local user's identity.

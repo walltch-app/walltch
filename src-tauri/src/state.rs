@@ -265,6 +265,12 @@ impl AppState {
         Ok(())
     }
 
+    /// Shared storage handle, so sibling adapters (e.g. the social backend)
+    /// can persist alongside the app state instead of opening their own.
+    pub fn storage(&self) -> Arc<dyn Storage> {
+        self.storage.clone()
+    }
+
     pub async fn profile(&self) -> Profile {
         self.profile.read().await.clone()
     }

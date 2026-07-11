@@ -6,6 +6,8 @@ import type { AddonStream } from "./bindings/AddonStream";
 import type { AddonSubtitle } from "./bindings/AddonSubtitle";
 import type { CatalogDescriptor } from "./bindings/CatalogDescriptor";
 import type { DownloadEntry } from "./bindings/DownloadEntry";
+import type { Friend } from "./bindings/Friend";
+import type { FriendActivity } from "./bindings/FriendActivity";
 import type { InstalledAddon } from "./bindings/InstalledAddon";
 import type { LibraryItem } from "./bindings/LibraryItem";
 import type { MetaDetail } from "./bindings/MetaDetail";
@@ -128,4 +130,21 @@ export function getProfile(): Promise<Profile> {
 /** Resolves with the saved profile (identity fields preserved). */
 export function updateProfile(update: ProfileUpdate): Promise<Profile> {
 	return invoke("update_profile", { update });
+}
+
+export function listFriends(): Promise<Friend[]> {
+	return invoke("list_friends");
+}
+
+/** Resolves with the added friend, or rejects with a reason string. */
+export function addFriend(code: string): Promise<Friend> {
+	return invoke("add_friend", { code });
+}
+
+export function removeFriend(id: string): Promise<void> {
+	return invoke("remove_friend", { id });
+}
+
+export function friendActivity(): Promise<FriendActivity[]> {
+	return invoke("friend_activity");
 }

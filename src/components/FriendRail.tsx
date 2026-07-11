@@ -1,24 +1,44 @@
 import { PanelRightClose, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { friendActivity, listFriends } from "../lib/api";
+import type { Friend } from "../lib/bindings/Friend";
+import type { FriendActivity } from "../lib/bindings/FriendActivity";
+import { avatarInitial } from "../lib/profile";
 
 const STORAGE_KEY = "friend-rail";
 
 /** Spotify-style friend activity rail: global chrome docked to the right
- * edge, full height, alongside the sidebar and main content. There is no
- * social backend yet, so it shows a placeholder — but the panel, its
- * collapse behavior and its place in the shell are already the real
- * thing. The panel stays mounted and animates its width both ways;
- * collapsed state persists across sessions. */
+ * edge, full height, alongside the sidebar and main content. Lists the
+ * friends you've added and their latest activity; live activity is empty
+ * until a social server lands, so friends read as idle for now. Collapsed
+ * state persists across sessions. */
 function FriendRail() {
 	const [open, setOpen] = useState(
 		() => localStorage.getItem(STORAGE_KEY) !== "closed",
 	);
+	const [friends, setFriends] = useState<Friend[]>([]);
+	const [activity, setActivity] = useState<FriendActivity[]>([]);
+
+	useEffect(() => {
+		listFriends()
+			.then(setFriends)
+			.catch(() => {});
+		friendActivity()
+			.then(setActivity)
+			.catch(() => {});
+	}, []);
 
 	const toggle = () => {
 		const next = !open;
 		setOpen(next);
 		localStorage.setItem(STORAGE_KEY, next ? "open" : "closed");
 	};
+
+	// Newest activity per friend, so each friend shows one current line.
+	const latest = new Map<string, FriendActivity>();
+	for (const item of activity) {
+		if (!latest.has(item.friendId)) latest.set(item.friendId, item);
+	}
 
 	return (
 		<aside className={open ? "friend-rail" : "friend-rail friend-rail-min"}>
@@ -37,13 +57,40 @@ function FriendRail() {
 						<PanelRightClose aria-hidden />
 					</button>
 				</header>
-				<div className="friend-rail-empty">
-					<p>No friend activity yet</p>
-					<span>
-						When your friends join Walltch, what they're watching will show up
-						here.
-					</span>
-				</div>
+
+				{friends.length === 0 ? (
+					<div className="friend-rail-empty">
+						<p>No friends yet</p>
+						<span>
+							Add a friend by their code on your profile, and what they're
+							watching will show up here.
+						</span>
+					</div>
+				) : (
+					<ul className="friend-rail-list">
+						{friends.map((friend) => {
+							const now = latest.get(friend.id);
+							return (
+								<li key={friend.id} className="friend-rail-item">
+									<span
+										className="avatar friend-rail-avatar"
+										style={{ background: friend.avatarColor }}
+									>
+										<span>{avatarInitial(friend.displayName)}</span>
+									</span>
+									<div className="friend-rail-meta">
+										<span className="friend-rail-name">
+											{friend.displayName}
+										</span>
+										<span className="friend-rail-sub">
+											{now ? now.title : "Not watching right now"}
+										</span>
+									</div>
+								</li>
+							);
+						})}
+					</ul>
+				)}
 			</div>
 			<button
 				type="button"

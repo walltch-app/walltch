@@ -1,10 +1,12 @@
 //! Tauri invoke handlers. Thin wrappers: real logic lives in AppState and
 //! walltch-core; errors cross the bridge as display strings.
 
+use std::sync::Arc;
+
 use tauri::State;
 use walltch_core::addon::{MetaDetail, MetaPreview, StreamSource};
 use walltch_core::library::{LibraryItem, WatchProgress};
-use walltch_core::social::Profile;
+use walltch_core::social::{Friend, FriendActivity, Profile, SocialBackend};
 
 use crate::adapters::torrent::{DownloadEntry, EngineConfig, ResolvedStream};
 use crate::adapters::TorrentEngine;
@@ -100,6 +102,36 @@ pub async fn update_profile(
         .update_profile(update)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn list_friends(
+    social: State<'_, Arc<dyn SocialBackend>>,
+) -> Result<Vec<Friend>, String> {
+    social.friends().await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn add_friend(
+    social: State<'_, Arc<dyn SocialBackend>>,
+    code: String,
+) -> Result<Friend, String> {
+    social.add_friend(&code).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn remove_friend(
+    social: State<'_, Arc<dyn SocialBackend>>,
+    id: String,
+) -> Result<(), String> {
+    social.remove_friend(&id).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn friend_activity(
+    social: State<'_, Arc<dyn SocialBackend>>,
+) -> Result<Vec<FriendActivity>, String> {
+    social.activity().await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]

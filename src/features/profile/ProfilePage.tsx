@@ -1,10 +1,14 @@
-import { Check } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, Copy, UserPlus, X } from "lucide-react";
+import { type FormEvent, useEffect, useState } from "react";
 import {
+	addFriend,
 	listContinueWatching,
+	listFriends,
 	listWatchlist,
+	removeFriend,
 	updateProfile,
 } from "../../lib/api";
+import type { Friend } from "../../lib/bindings/Friend";
 import { avatarInitial, formatFriendCode, useProfile } from "../../lib/profile";
 import "./profile.css";
 
@@ -27,12 +31,20 @@ function ProfilePage() {
 	const [color, setColor] = useState(AVATAR_COLORS[0]);
 	const [flash, setFlash] = useState(false);
 
+	const [friends, setFriends] = useState<Friend[]>([]);
+	const [codeInput, setCodeInput] = useState("");
+	const [friendError, setFriendError] = useState<string | null>(null);
+	const [copied, setCopied] = useState(false);
+
 	useEffect(() => {
 		listContinueWatching()
 			.then((list) => setWatching(list.length))
 			.catch(() => {});
 		listWatchlist()
 			.then((list) => setSaved(list.length))
+			.catch(() => {});
+		listFriends()
+			.then(setFriends)
 			.catch(() => {});
 	}, []);
 
@@ -61,6 +73,40 @@ function ProfilePage() {
 		} catch {
 			// Leave the form as-is; nothing was persisted.
 		}
+	}
+
+	async function onAddFriend(e: FormEvent) {
+		e.preventDefault();
+		const code = codeInput.trim();
+		if (!code) return;
+		try {
+			const friend = await addFriend(code);
+			setFriends((current) => [friend, ...current]);
+			setCodeInput("");
+			setFriendError(null);
+		} catch (err) {
+			setFriendError(String(err));
+		}
+	}
+
+	async function onRemoveFriend(id: string) {
+		try {
+			await removeFriend(id);
+			setFriends((current) => current.filter((f) => f.id !== id));
+		} catch {
+			// Keep the row; the list reloads correctly next visit.
+		}
+	}
+
+	function copyCode() {
+		if (!profile) return;
+		navigator.clipboard
+			.writeText(profile.friendCode)
+			.then(() => {
+				setCopied(true);
+				setTimeout(() => setCopied(false), 1600);
+			})
+			.catch(() => {});
 	}
 
 	return (
@@ -123,6 +169,71 @@ function ProfilePage() {
 				<button type="button" className="btn" onClick={save} disabled={!dirty}>
 					{flash ? "Saved" : "Save changes"}
 				</button>
+			</section>
+
+			<section className="profile-friends">
+				<h2 className="profile-section">Friends</h2>
+				<p className="profile-hint">
+					Share your code so friends can add you. Their live activity turns on
+					once sign-in lands.
+				</p>
+
+				<div className="friend-code-box">
+					<span className="friend-code">
+						{formatFriendCode(profile.friendCode)}
+					</span>
+					<button type="button" className="copy-btn" onClick={copyCode}>
+						<Copy aria-hidden />
+						{copied ? "Copied" : "Copy"}
+					</button>
+				</div>
+
+				<form className="add-friend" onSubmit={onAddFriend}>
+					<input
+						className="profile-input"
+						value={codeInput}
+						onChange={(e) => setCodeInput(e.currentTarget.value)}
+						placeholder="Enter a friend code"
+						inputMode="numeric"
+						maxLength={8}
+						spellCheck={false}
+					/>
+					<button type="submit" className="btn">
+						<UserPlus aria-hidden />
+						Add
+					</button>
+				</form>
+				{friendError && <p className="form-error">{friendError}</p>}
+
+				<ul className="friend-list">
+					{friends.map((friend) => (
+						<li key={friend.id} className="friend-row">
+							<span
+								className="avatar friend-avatar"
+								style={{ background: friend.avatarColor }}
+							>
+								<span>{avatarInitial(friend.displayName)}</span>
+							</span>
+							<div className="friend-meta">
+								<span className="friend-name">{friend.displayName}</span>
+								<span className="friend-code-sub">
+									{formatFriendCode(friend.friendCode)}
+								</span>
+							</div>
+							<button
+								type="button"
+								className="friend-remove"
+								onClick={() => onRemoveFriend(friend.id)}
+								aria-label={`Remove ${friend.displayName}`}
+							>
+								<X aria-hidden />
+							</button>
+						</li>
+					))}
+					{friends.length === 0 && (
+						<li className="friend-empty">No friends added yet.</li>
+					)}
+				</ul>
 			</section>
 		</div>
 	);

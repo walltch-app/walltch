@@ -2,7 +2,10 @@ pub mod adapters;
 pub mod commands;
 pub mod state;
 
+use std::sync::Arc;
+
 use tauri::Manager;
+use walltch_core::social::SocialBackend;
 
 /// In "clear on exit" cache mode the torrents dir is disposable; wipe it.
 fn clear_temp_cache(app: &tauri::AppHandle) {
@@ -28,7 +31,16 @@ pub fn run() {
             let data_dir = app.path().app_data_dir()?;
             let state =
                 tauri::async_runtime::block_on(state::AppState::load_default(data_dir.clone()))?;
+
+            // Local social backend, seeded with our own friend code; swapped
+            // for a server-backed one when accounts land.
+            let own_code = tauri::async_runtime::block_on(state.profile()).friend_code;
+            let social: Arc<dyn SocialBackend> = Arc::new(tauri::async_runtime::block_on(
+                adapters::LocalSocialBackend::load(state.storage(), own_code),
+            ));
+
             app.manage(state);
+            app.manage(social);
             app.manage(adapters::TorrentEngine::new(data_dir.join("torrents")));
             // A crash can leave temp-mode data behind; sweep it on startup too.
             clear_temp_cache(app.handle());
@@ -58,6 +70,10 @@ pub fn run() {
             commands::delete_download,
             commands::get_profile,
             commands::update_profile,
+            commands::list_friends,
+            commands::add_friend,
+            commands::remove_friend,
+            commands::friend_activity,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

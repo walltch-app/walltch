@@ -485,6 +485,62 @@ a.avatar:hover {
 	line-height: 1.5;
 }
 
+.friend-rail-list {
+	list-style: none;
+	padding: 10px;
+	margin: 0;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.friend-rail-item {
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	padding: 8px;
+	border-radius: 12px;
+	transition: background-color 120ms ease;
+}
+
+.friend-rail-item:hover {
+	background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+}
+
+.friend-rail-avatar {
+	width: 36px;
+	height: 36px;
+	border: 0;
+	cursor: default;
+}
+
+.friend-rail-avatar span {
+	font-size: 0.92rem;
+}
+
+.friend-rail-meta {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.friend-rail-name {
+	font-size: 0.9rem;
+	font-weight: 550;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.friend-rail-sub {
+	color: var(--muted);
+	font-size: 0.78rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 /* The expand affordance: an icon pinned to the top of the collapsed rail.
    It fades in as the panel content fades out, so the swap is seamless. */
 .friend-rail-expand {
