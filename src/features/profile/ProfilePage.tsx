@@ -10,6 +10,7 @@ import {
 } from "../../lib/api";
 import type { Friend } from "../../lib/bindings/Friend";
 import { avatarInitial, formatFriendCode, useProfile } from "../../lib/profile";
+import AuthCard from "./AuthCard";
 import "./profile.css";
 
 const AVATAR_COLORS = [
@@ -133,6 +134,8 @@ function ProfilePage() {
 					<span className="stat-label">in your list</span>
 				</div>
 			</div>
+
+			<AuthCard />
 
 			<section className="profile-edit">
 				<h2 className="profile-section">Edit profile</h2>

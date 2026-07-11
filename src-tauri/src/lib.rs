@@ -39,8 +39,14 @@ pub fn run() {
                 adapters::LocalSocialBackend::load(state.storage(), own_code),
             ));
 
+            // Supabase account layer: restores any saved session on startup.
+            let auth = Arc::new(tauri::async_runtime::block_on(
+                adapters::SupabaseAuth::load(state.storage()),
+            ));
+
             app.manage(state);
             app.manage(social);
+            app.manage(auth);
             app.manage(adapters::TorrentEngine::new(data_dir.join("torrents")));
             // A crash can leave temp-mode data behind; sweep it on startup too.
             clear_temp_cache(app.handle());
@@ -74,6 +80,10 @@ pub fn run() {
             commands::add_friend,
             commands::remove_friend,
             commands::friend_activity,
+            commands::auth_status,
+            commands::sign_up,
+            commands::sign_in,
+            commands::sign_out,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

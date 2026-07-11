@@ -8,8 +8,9 @@ use walltch_core::addon::{MetaDetail, MetaPreview, StreamSource};
 use walltch_core::library::{LibraryItem, WatchProgress};
 use walltch_core::social::{Friend, FriendActivity, Profile, SocialBackend};
 
+use crate::adapters::supabase::AuthStatus;
 use crate::adapters::torrent::{DownloadEntry, EngineConfig, ResolvedStream};
-use crate::adapters::TorrentEngine;
+use crate::adapters::{SupabaseAuth, TorrentEngine};
 use crate::state::{
     AddonStream, AddonSubtitle, AppState, CacheMode, CatalogDescriptor, InstalledAddon,
     ProfileUpdate, ProgressUpdate, Settings, WatchlistToggle,
@@ -132,6 +133,34 @@ pub async fn friend_activity(
     social: State<'_, Arc<dyn SocialBackend>>,
 ) -> Result<Vec<FriendActivity>, String> {
     social.activity().await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn auth_status(auth: State<'_, Arc<SupabaseAuth>>) -> Result<AuthStatus, String> {
+    Ok(auth.status().await)
+}
+
+#[tauri::command]
+pub async fn sign_up(
+    auth: State<'_, Arc<SupabaseAuth>>,
+    email: String,
+    password: String,
+) -> Result<AuthStatus, String> {
+    auth.sign_up(&email, &password).await
+}
+
+#[tauri::command]
+pub async fn sign_in(
+    auth: State<'_, Arc<SupabaseAuth>>,
+    email: String,
+    password: String,
+) -> Result<AuthStatus, String> {
+    auth.sign_in(&email, &password).await
+}
+
+#[tauri::command]
+pub async fn sign_out(auth: State<'_, Arc<SupabaseAuth>>) -> Result<(), String> {
+    auth.sign_out().await
 }
 
 #[tauri::command]

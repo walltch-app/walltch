@@ -4,6 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { AddonStream } from "./bindings/AddonStream";
 import type { AddonSubtitle } from "./bindings/AddonSubtitle";
+import type { AuthStatus } from "./bindings/AuthStatus";
 import type { CatalogDescriptor } from "./bindings/CatalogDescriptor";
 import type { DownloadEntry } from "./bindings/DownloadEntry";
 import type { Friend } from "./bindings/Friend";
@@ -147,4 +148,20 @@ export function removeFriend(id: string): Promise<void> {
 
 export function friendActivity(): Promise<FriendActivity[]> {
 	return invoke("friend_activity");
+}
+
+export function authStatus(): Promise<AuthStatus> {
+	return invoke("auth_status");
+}
+
+export function signUp(email: string, password: string): Promise<AuthStatus> {
+	return invoke("sign_up", { email, password });
+}
+
+export function signIn(email: string, password: string): Promise<AuthStatus> {
+	return invoke("sign_in", { email, password });
+}
+
+export function signOut(): Promise<void> {
+	return invoke("sign_out");
 }
