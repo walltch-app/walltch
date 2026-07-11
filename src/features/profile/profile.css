@@ -357,3 +357,42 @@
 	color: var(--muted);
 	font-size: 0.85rem;
 }
+
+.friend-requests {
+	margin-top: 4px;
+}
+
+.friend-subhead {
+	margin-bottom: 8px;
+	color: var(--muted);
+	font-size: 0.78rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+}
+
+.req-accept {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	border: 0;
+	border-radius: 50%;
+	background: color-mix(in srgb, var(--accent) 22%, transparent);
+	color: var(--accent-2);
+	cursor: pointer;
+	transition:
+		background-color 120ms ease,
+		color 120ms ease;
+}
+
+.req-accept:hover {
+	background: var(--gradient);
+	color: #fff;
+}
+
+.req-accept svg {
+	width: 16px;
+	height: 16px;
+}

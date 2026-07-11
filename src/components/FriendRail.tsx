@@ -22,19 +22,25 @@ function FriendRail() {
 	const [friends, setFriends] = useState<Friend[]>([]);
 	const [activity, setActivity] = useState<FriendActivity[]>([]);
 
-	// Reload as the session changes; there's nothing to show signed out.
+	// Reload on session change, then poll, so newly accepted friends and
+	// their activity appear without reopening the app.
 	useEffect(() => {
 		if (!signedIn) {
 			setFriends([]);
 			setActivity([]);
 			return;
 		}
-		listFriends()
-			.then(setFriends)
-			.catch(() => {});
-		friendActivity()
-			.then(setActivity)
-			.catch(() => {});
+		const load = () => {
+			listFriends()
+				.then(setFriends)
+				.catch(() => {});
+			friendActivity()
+				.then(setActivity)
+				.catch(() => {});
+		};
+		load();
+		const timer = setInterval(load, 12000);
+		return () => clearInterval(timer);
 	}, [signedIn]);
 
 	const toggle = () => {

@@ -152,6 +152,33 @@ pub async fn remove_friend(
 }
 
 #[tauri::command]
+pub async fn list_friend_requests(
+    social: State<'_, Arc<SupabaseSocial>>,
+    auth: State<'_, Arc<SupabaseAuth>>,
+) -> Result<Vec<Friend>, String> {
+    if !auth.is_signed_in().await {
+        return Ok(Vec::new());
+    }
+    social.requests().await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn accept_friend(
+    social: State<'_, Arc<SupabaseSocial>>,
+    id: String,
+) -> Result<(), String> {
+    social.accept_request(&id).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn reject_friend(
+    social: State<'_, Arc<SupabaseSocial>>,
+    id: String,
+) -> Result<(), String> {
+    social.reject_request(&id).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn friend_activity(
     social: State<'_, Arc<SupabaseSocial>>,
     auth: State<'_, Arc<SupabaseAuth>>,

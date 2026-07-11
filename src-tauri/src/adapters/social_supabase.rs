@@ -118,29 +118,51 @@ impl SupabaseSocial {
         Ok(profile_from_row(&me, row))
     }
 
+    /// Accepted friends, from whichever side of the row I'm on — the person
+    /// who sent the request and the person who accepted are both friends.
     pub async fn friends(&self) -> Result<Vec<Friend>, SocialError> {
         let me = self.me().await?;
-        let value = self
+        let sent = self
             .rest(
                 Method::GET,
                 &format!(
-                    "friendships?user_id=eq.{me}&select=friend:profiles!friend_id(id,display_name,avatar_color,friend_code)"
+                    "friendships?user_id=eq.{me}&status=eq.accepted&select=other:profiles!friend_id(id,display_name,avatar_color,friend_code)"
                 ),
                 None,
                 None,
             )
             .await?;
-        let friends = value
-            .as_array()
-            .map(|rows| {
-                rows.iter()
-                    .filter_map(|r| friend_from_row(&r["friend"]))
-                    .collect()
-            })
-            .unwrap_or_default();
-        Ok(friends)
+        let received = self
+            .rest(
+                Method::GET,
+                &format!(
+                    "friendships?friend_id=eq.{me}&status=eq.accepted&select=other:profiles!user_id(id,display_name,avatar_color,friend_code)"
+                ),
+                None,
+                None,
+            )
+            .await?;
+        Ok(others(&sent).chain(others(&received)).collect())
     }
 
+    /// Incoming requests waiting on me: the people who added my code.
+    pub async fn requests(&self) -> Result<Vec<Friend>, SocialError> {
+        let me = self.me().await?;
+        let value = self
+            .rest(
+                Method::GET,
+                &format!(
+                    "friendships?friend_id=eq.{me}&status=eq.pending&select=other:profiles!user_id(id,display_name,avatar_color,friend_code)"
+                ),
+                None,
+                None,
+            )
+            .await?;
+        Ok(others(&value).collect())
+    }
+
+    /// Adding by code sends a request; it becomes a friendship once they
+    /// accept. Returns the person the request went to.
     pub async fn add_friend(&self, code: &str) -> Result<Friend, SocialError> {
         let code = code.trim();
         if code.len() != 8 || !code.bytes().all(|b| b.is_ascii_digit()) {
@@ -173,20 +195,54 @@ impl SupabaseSocial {
             Some(json!({
                 "user_id": me,
                 "friend_id": target_id,
-                "status": "accepted",
+                "status": "pending",
             })),
             Some("return=minimal"),
         )
         .await?;
 
-        friend_from_row(target).ok_or_else(|| backend("Added, but couldn't read them back."))
+        friend_from_row(target).ok_or_else(|| backend("Sent, but couldn't read them back."))
     }
 
+    /// Accept an incoming request from `requester_id`.
+    pub async fn accept_request(&self, requester_id: &str) -> Result<(), SocialError> {
+        let me = self.me().await?;
+        self.rest(
+            Method::PATCH,
+            &format!("friendships?user_id=eq.{requester_id}&friend_id=eq.{me}&status=eq.pending"),
+            Some(json!({ "status": "accepted" })),
+            Some("return=minimal"),
+        )
+        .await?;
+        Ok(())
+    }
+
+    /// Reject an incoming request (delete the pending row).
+    pub async fn reject_request(&self, requester_id: &str) -> Result<(), SocialError> {
+        let me = self.me().await?;
+        self.rest(
+            Method::DELETE,
+            &format!("friendships?user_id=eq.{requester_id}&friend_id=eq.{me}"),
+            None,
+            None,
+        )
+        .await?;
+        Ok(())
+    }
+
+    /// Drop a friend (or cancel a request I sent) from either side.
     pub async fn remove_friend(&self, id: &str) -> Result<(), SocialError> {
         let me = self.me().await?;
         self.rest(
             Method::DELETE,
             &format!("friendships?user_id=eq.{me}&friend_id=eq.{id}"),
+            None,
+            None,
+        )
+        .await?;
+        self.rest(
+            Method::DELETE,
+            &format!("friendships?user_id=eq.{id}&friend_id=eq.{me}"),
             None,
             None,
         )
@@ -221,6 +277,16 @@ fn profile_from_row(id: &str, row: &Value) -> Profile {
         friend_code: row["friend_code"].as_str().unwrap_or_default().to_owned(),
         avatar_color: row["avatar_color"].as_str().unwrap_or("#d0588a").to_owned(),
     }
+}
+
+/// Pull the embedded `other` profile out of each friendship row.
+fn others(value: &Value) -> impl Iterator<Item = Friend> + '_ {
+    value
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|row| friend_from_row(&row["other"]))
 }
 
 fn friend_from_row(row: &Value) -> Option<Friend> {

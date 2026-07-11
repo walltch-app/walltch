@@ -1,10 +1,13 @@
 import { Check, Copy, UserPlus, X } from "lucide-react";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import {
+	acceptFriend,
 	addFriend,
 	listContinueWatching,
+	listFriendRequests,
 	listFriends,
 	listWatchlist,
+	rejectFriend,
 	removeFriend,
 	updateProfile,
 } from "../../lib/api";
@@ -36,8 +39,10 @@ function ProfilePage() {
 	const [flash, setFlash] = useState(false);
 
 	const [friends, setFriends] = useState<Friend[]>([]);
+	const [requests, setRequests] = useState<Friend[]>([]);
 	const [codeInput, setCodeInput] = useState("");
 	const [friendError, setFriendError] = useState<string | null>(null);
+	const [friendNote, setFriendNote] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 
 	useEffect(() => {
@@ -49,17 +54,30 @@ function ProfilePage() {
 			.catch(() => {});
 	}, []);
 
-	// Friends come from the server, so (re)load them whenever the session
-	// changes rather than only on mount.
-	useEffect(() => {
+	// Friends and incoming requests live on the server, so pull the truth
+	// rather than trusting local edits.
+	const reloadFriends = useCallback(() => {
 		if (!signedIn) {
 			setFriends([]);
+			setRequests([]);
 			return;
 		}
 		listFriends()
 			.then(setFriends)
 			.catch(() => {});
+		listFriendRequests()
+			.then(setRequests)
+			.catch(() => {});
 	}, [signedIn]);
+
+	// Reload on session change and then poll, so a request you send or one a
+	// friend accepts shows up without reopening the app.
+	useEffect(() => {
+		reloadFriends();
+		if (!signedIn) return;
+		const timer = setInterval(reloadFriends, 12000);
+		return () => clearInterval(timer);
+	}, [reloadFriends, signedIn]);
 
 	// Seed the form once the profile arrives (and after a save updates it).
 	useEffect(() => {
@@ -94,20 +112,36 @@ function ProfilePage() {
 		if (!code) return;
 		try {
 			const friend = await addFriend(code);
-			setFriends((current) => [friend, ...current]);
 			setCodeInput("");
 			setFriendError(null);
+			setFriendNote(`Request sent to ${friend.displayName}.`);
 		} catch (err) {
+			setFriendNote(null);
 			setFriendError(String(err));
+		}
+	}
+
+	async function onAcceptRequest(id: string) {
+		try {
+			await acceptFriend(id);
+		} finally {
+			reloadFriends();
+		}
+	}
+
+	async function onRejectRequest(id: string) {
+		try {
+			await rejectFriend(id);
+		} finally {
+			reloadFriends();
 		}
 	}
 
 	async function onRemoveFriend(id: string) {
 		try {
 			await removeFriend(id);
-			setFriends((current) => current.filter((f) => f.id !== id));
-		} catch {
-			// Keep the row; the list reloads correctly next visit.
+		} finally {
+			reloadFriends();
 		}
 	}
 
@@ -220,6 +254,47 @@ function ProfilePage() {
 							</button>
 						</form>
 						{friendError && <p className="form-error">{friendError}</p>}
+						{friendNote && <p className="auth-note">{friendNote}</p>}
+
+						{requests.length > 0 && (
+							<div className="friend-requests">
+								<h3 className="friend-subhead">Requests</h3>
+								<ul className="friend-list">
+									{requests.map((req) => (
+										<li key={req.id} className="friend-row">
+											<span
+												className="avatar friend-avatar"
+												style={{ background: req.avatarColor }}
+											>
+												<span>{avatarInitial(req.displayName)}</span>
+											</span>
+											<div className="friend-meta">
+												<span className="friend-name">{req.displayName}</span>
+												<span className="friend-code-sub">
+													wants to be friends
+												</span>
+											</div>
+											<button
+												type="button"
+												className="req-accept"
+												onClick={() => onAcceptRequest(req.id)}
+												aria-label={`Accept ${req.displayName}`}
+											>
+												<Check aria-hidden />
+											</button>
+											<button
+												type="button"
+												className="friend-remove"
+												onClick={() => onRejectRequest(req.id)}
+												aria-label={`Reject ${req.displayName}`}
+											>
+												<X aria-hidden />
+											</button>
+										</li>
+									))}
+								</ul>
+							</div>
+						)}
 
 						<ul className="friend-list">
 							{friends.map((friend) => (

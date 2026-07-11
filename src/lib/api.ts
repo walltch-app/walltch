@@ -146,6 +146,19 @@ export function removeFriend(id: string): Promise<void> {
 	return invoke("remove_friend", { id });
 }
 
+/** Incoming friend requests (people who added your code), as their profiles. */
+export function listFriendRequests(): Promise<Friend[]> {
+	return invoke("list_friend_requests");
+}
+
+export function acceptFriend(id: string): Promise<void> {
+	return invoke("accept_friend", { id });
+}
+
+export function rejectFriend(id: string): Promise<void> {
+	return invoke("reject_friend", { id });
+}
+
 export function friendActivity(): Promise<FriendActivity[]> {
 	return invoke("friend_activity");
 }
