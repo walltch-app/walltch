@@ -86,6 +86,18 @@ impl SupabaseAuth {
         }
     }
 
+    pub async fn is_signed_in(&self) -> bool {
+        self.session.read().await.is_some()
+    }
+
+    pub async fn user_id(&self) -> Option<String> {
+        self.session
+            .read()
+            .await
+            .as_ref()
+            .map(|s| s.user_id.clone())
+    }
+
     /// A valid bearer token, refreshing first if the current one is stale.
     /// `None` means signed out (or the refresh failed and we cleared it).
     pub async fn access_token(&self) -> Option<String> {

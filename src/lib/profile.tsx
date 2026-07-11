@@ -7,6 +7,7 @@ import {
 	useState,
 } from "react";
 import { getProfile } from "./api";
+import { useAuth } from "./auth";
 import type { Profile } from "./bindings/Profile";
 
 type ProfileContextValue = {
@@ -22,13 +23,17 @@ const ProfileContext = createContext<ProfileContextValue>({
 /** Loads the local profile once and shares it, so the topbar avatar and the
  * profile page stay in sync when either edits it. */
 export function ProfileProvider({ children }: { children: ReactNode }) {
+	const { status } = useAuth();
 	const [profile, setProfile] = useState<Profile | null>(null);
 
+	// Reload when the session flips: signed in the profile is the server one
+	// (with the sharable friend code), signed out it's the local one.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the session is the trigger, not a value read in the body
 	useEffect(() => {
 		getProfile()
 			.then(setProfile)
 			.catch(() => {});
-	}, []);
+	}, [status?.signedIn]);
 
 	const value = useMemo(() => ({ profile, setProfile }), [profile]);
 	return (

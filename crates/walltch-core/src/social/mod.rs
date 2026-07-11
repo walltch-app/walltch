@@ -5,7 +5,7 @@
 
 pub mod friends;
 
-pub use friends::{Friend, FriendActivity, FriendList, SocialBackend, SocialError};
+pub use friends::{Friend, FriendActivity, SocialError};
 
 use serde::{Deserialize, Serialize};
 

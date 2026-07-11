@@ -1,6 +1,7 @@
 import { PanelRightClose, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { friendActivity, listFriends } from "../lib/api";
+import { useAuth } from "../lib/auth";
 import type { Friend } from "../lib/bindings/Friend";
 import type { FriendActivity } from "../lib/bindings/FriendActivity";
 import { avatarInitial } from "../lib/profile";
@@ -13,20 +14,28 @@ const STORAGE_KEY = "friend-rail";
  * until a social server lands, so friends read as idle for now. Collapsed
  * state persists across sessions. */
 function FriendRail() {
+	const { status } = useAuth();
+	const signedIn = status?.signedIn ?? false;
 	const [open, setOpen] = useState(
 		() => localStorage.getItem(STORAGE_KEY) !== "closed",
 	);
 	const [friends, setFriends] = useState<Friend[]>([]);
 	const [activity, setActivity] = useState<FriendActivity[]>([]);
 
+	// Reload as the session changes; there's nothing to show signed out.
 	useEffect(() => {
+		if (!signedIn) {
+			setFriends([]);
+			setActivity([]);
+			return;
+		}
 		listFriends()
 			.then(setFriends)
 			.catch(() => {});
 		friendActivity()
 			.then(setActivity)
 			.catch(() => {});
-	}, []);
+	}, [signedIn]);
 
 	const toggle = () => {
 		const next = !open;

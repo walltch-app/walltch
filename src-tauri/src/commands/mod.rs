@@ -6,11 +6,11 @@ use std::sync::Arc;
 use tauri::State;
 use walltch_core::addon::{MetaDetail, MetaPreview, StreamSource};
 use walltch_core::library::{LibraryItem, WatchProgress};
-use walltch_core::social::{Friend, FriendActivity, Profile, SocialBackend};
+use walltch_core::social::{Friend, FriendActivity, Profile};
 
 use crate::adapters::supabase::AuthStatus;
 use crate::adapters::torrent::{DownloadEntry, EngineConfig, ResolvedStream};
-use crate::adapters::{SupabaseAuth, TorrentEngine};
+use crate::adapters::{SupabaseAuth, SupabaseSocial, TorrentEngine};
 use crate::state::{
     AddonStream, AddonSubtitle, AppState, CacheMode, CatalogDescriptor, InstalledAddon,
     ProfileUpdate, ProgressUpdate, Settings, WatchlistToggle,
@@ -89,32 +89,55 @@ pub async fn reorder_addons(state: State<'_, AppState>, order: Vec<String>) -> R
     state.reorder_addons(order).await.map_err(|e| e.to_string())
 }
 
+// Once signed in the profile lives on the server (so friends resolve your
+// code); signed out it's the local one. Same for edits.
 #[tauri::command]
-pub async fn get_profile(state: State<'_, AppState>) -> Result<Profile, String> {
-    Ok(state.profile().await)
+pub async fn get_profile(
+    state: State<'_, AppState>,
+    auth: State<'_, Arc<SupabaseAuth>>,
+    social: State<'_, Arc<SupabaseSocial>>,
+) -> Result<Profile, String> {
+    if auth.is_signed_in().await {
+        social.profile().await.map_err(|e| e.to_string())
+    } else {
+        Ok(state.profile().await)
+    }
 }
 
 #[tauri::command]
 pub async fn update_profile(
     state: State<'_, AppState>,
+    auth: State<'_, Arc<SupabaseAuth>>,
+    social: State<'_, Arc<SupabaseSocial>>,
     update: ProfileUpdate,
 ) -> Result<Profile, String> {
-    state
-        .update_profile(update)
-        .await
-        .map_err(|e| e.to_string())
+    if auth.is_signed_in().await {
+        social
+            .update_profile(&update.display_name, &update.avatar_color)
+            .await
+            .map_err(|e| e.to_string())
+    } else {
+        state
+            .update_profile(update)
+            .await
+            .map_err(|e| e.to_string())
+    }
 }
 
 #[tauri::command]
 pub async fn list_friends(
-    social: State<'_, Arc<dyn SocialBackend>>,
+    social: State<'_, Arc<SupabaseSocial>>,
+    auth: State<'_, Arc<SupabaseAuth>>,
 ) -> Result<Vec<Friend>, String> {
+    if !auth.is_signed_in().await {
+        return Ok(Vec::new());
+    }
     social.friends().await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn add_friend(
-    social: State<'_, Arc<dyn SocialBackend>>,
+    social: State<'_, Arc<SupabaseSocial>>,
     code: String,
 ) -> Result<Friend, String> {
     social.add_friend(&code).await.map_err(|e| e.to_string())
@@ -122,7 +145,7 @@ pub async fn add_friend(
 
 #[tauri::command]
 pub async fn remove_friend(
-    social: State<'_, Arc<dyn SocialBackend>>,
+    social: State<'_, Arc<SupabaseSocial>>,
     id: String,
 ) -> Result<(), String> {
     social.remove_friend(&id).await.map_err(|e| e.to_string())
@@ -130,8 +153,12 @@ pub async fn remove_friend(
 
 #[tauri::command]
 pub async fn friend_activity(
-    social: State<'_, Arc<dyn SocialBackend>>,
+    social: State<'_, Arc<SupabaseSocial>>,
+    auth: State<'_, Arc<SupabaseAuth>>,
 ) -> Result<Vec<FriendActivity>, String> {
+    if !auth.is_signed_in().await {
+        return Ok(Vec::new());
+    }
     social.activity().await.map_err(|e| e.to_string())
 }
 

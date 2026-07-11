@@ -5,7 +5,6 @@ pub mod state;
 use std::sync::Arc;
 
 use tauri::Manager;
-use walltch_core::social::SocialBackend;
 
 /// In "clear on exit" cache mode the torrents dir is disposable; wipe it.
 fn clear_temp_cache(app: &tauri::AppHandle) {
@@ -32,21 +31,15 @@ pub fn run() {
             let state =
                 tauri::async_runtime::block_on(state::AppState::load_default(data_dir.clone()))?;
 
-            // Local social backend, seeded with our own friend code; swapped
-            // for a server-backed one when accounts land.
-            let own_code = tauri::async_runtime::block_on(state.profile()).friend_code;
-            let social: Arc<dyn SocialBackend> = Arc::new(tauri::async_runtime::block_on(
-                adapters::LocalSocialBackend::load(state.storage(), own_code),
-            ));
-
             // Supabase account layer: restores any saved session on startup.
             let auth = Arc::new(tauri::async_runtime::block_on(
                 adapters::SupabaseAuth::load(state.storage()),
             ));
+            let social = Arc::new(adapters::SupabaseSocial::new(auth.clone()));
 
             app.manage(state);
-            app.manage(social);
             app.manage(auth);
+            app.manage(social);
             app.manage(adapters::TorrentEngine::new(data_dir.join("torrents")));
             // A crash can leave temp-mode data behind; sweep it on startup too.
             clear_temp_cache(app.handle());
