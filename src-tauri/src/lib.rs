@@ -56,6 +56,8 @@ pub fn run() {
             commands::reorder_addons,
             commands::list_downloads,
             commands::delete_download,
+            commands::get_profile,
+            commands::update_profile,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

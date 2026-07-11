@@ -117,11 +117,27 @@ textarea {
 	border-radius: 50%;
 	background: var(--gradient);
 	color: #fff;
+	cursor: pointer;
+	transition:
+		transform 130ms ease,
+		box-shadow 130ms ease;
+}
+
+a.avatar:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 .avatar svg {
 	width: 16px;
 	height: 16px;
+}
+
+.avatar span {
+	font-family: var(--font-display);
+	font-size: 0.95rem;
+	font-weight: 650;
+	line-height: 1;
 }
 
 .win-controls {

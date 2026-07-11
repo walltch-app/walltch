@@ -3,14 +3,14 @@
 
 use tauri::State;
 use walltch_core::addon::{MetaDetail, MetaPreview, StreamSource};
-
 use walltch_core::library::{LibraryItem, WatchProgress};
+use walltch_core::social::Profile;
 
 use crate::adapters::torrent::{DownloadEntry, EngineConfig, ResolvedStream};
 use crate::adapters::TorrentEngine;
 use crate::state::{
     AddonStream, AddonSubtitle, AppState, CacheMode, CatalogDescriptor, InstalledAddon,
-    ProgressUpdate, Settings, WatchlistToggle,
+    ProfileUpdate, ProgressUpdate, Settings, WatchlistToggle,
 };
 
 #[tauri::command]
@@ -84,6 +84,22 @@ pub async fn set_settings(state: State<'_, AppState>, settings: Settings) -> Res
 #[tauri::command]
 pub async fn reorder_addons(state: State<'_, AppState>, order: Vec<String>) -> Result<(), String> {
     state.reorder_addons(order).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_profile(state: State<'_, AppState>) -> Result<Profile, String> {
+    Ok(state.profile().await)
+}
+
+#[tauri::command]
+pub async fn update_profile(
+    state: State<'_, AppState>,
+    update: ProfileUpdate,
+) -> Result<Profile, String> {
+    state
+        .update_profile(update)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

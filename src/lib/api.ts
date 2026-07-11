@@ -10,6 +10,8 @@ import type { InstalledAddon } from "./bindings/InstalledAddon";
 import type { LibraryItem } from "./bindings/LibraryItem";
 import type { MetaDetail } from "./bindings/MetaDetail";
 import type { MetaPreview } from "./bindings/MetaPreview";
+import type { Profile } from "./bindings/Profile";
+import type { ProfileUpdate } from "./bindings/ProfileUpdate";
 import type { ProgressUpdate } from "./bindings/ProgressUpdate";
 import type { ResolvedStream } from "./bindings/ResolvedStream";
 import type { Settings } from "./bindings/Settings";
@@ -117,4 +119,13 @@ export function listDownloads(): Promise<DownloadEntry[]> {
 
 export function deleteDownload(name: string): Promise<void> {
 	return invoke("delete_download", { name });
+}
+
+export function getProfile(): Promise<Profile> {
+	return invoke("get_profile");
+}
+
+/** Resolves with the saved profile (identity fields preserved). */
+export function updateProfile(update: ProfileUpdate): Promise<Profile> {
+	return invoke("update_profile", { update });
 }

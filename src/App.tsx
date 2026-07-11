@@ -13,6 +13,7 @@ import PlayerPage from "./features/player/PlayerPage";
 import ProfilePage from "./features/profile/ProfilePage";
 import SettingsPage from "./features/settings/SettingsPage";
 import { getSettings } from "./lib/api";
+import { ProfileProvider } from "./lib/profile";
 import { applyAccent } from "./lib/theme";
 
 function App() {
@@ -24,33 +25,35 @@ function App() {
 
 	return (
 		<BrowserRouter>
-			<Routes>
-				<Route element={<Layout />}>
-					<Route index element={<DiscoverPage />} />
-					<Route
-						path="movies"
-						element={<TypeBoardPage contentType="movie" title="Movies" />}
-					/>
-					<Route
-						path="series"
-						element={<TypeBoardPage contentType="series" title="Series" />}
-					/>
-					<Route
-						path="anime"
-						element={<TypeBoardPage contentType="anime" title="Anime" />}
-					/>
-					<Route path="continue" element={<ContinuePage />} />
-					<Route path="downloads" element={<DownloadsPage />} />
-					<Route path="profile" element={<ProfilePage />} />
-					<Route path="catalog" element={<CatalogPage />} />
-					<Route path="library" element={<LibraryPage />} />
-					<Route path="addons" element={<AddonsPage />} />
-					<Route path="detail/:type/:id" element={<DetailPage />} />
-					<Route path="settings" element={<SettingsPage />} />
-				</Route>
-				{/* Full-bleed, no sidebar while watching. */}
-				<Route path="player" element={<PlayerPage />} />
-			</Routes>
+			<ProfileProvider>
+				<Routes>
+					<Route element={<Layout />}>
+						<Route index element={<DiscoverPage />} />
+						<Route
+							path="movies"
+							element={<TypeBoardPage contentType="movie" title="Movies" />}
+						/>
+						<Route
+							path="series"
+							element={<TypeBoardPage contentType="series" title="Series" />}
+						/>
+						<Route
+							path="anime"
+							element={<TypeBoardPage contentType="anime" title="Anime" />}
+						/>
+						<Route path="continue" element={<ContinuePage />} />
+						<Route path="downloads" element={<DownloadsPage />} />
+						<Route path="profile" element={<ProfilePage />} />
+						<Route path="catalog" element={<CatalogPage />} />
+						<Route path="library" element={<LibraryPage />} />
+						<Route path="addons" element={<AddonsPage />} />
+						<Route path="detail/:type/:id" element={<DetailPage />} />
+						<Route path="settings" element={<SettingsPage />} />
+					</Route>
+					{/* Full-bleed, no sidebar while watching. */}
+					<Route path="player" element={<PlayerPage />} />
+				</Routes>
+			</ProfileProvider>
 		</BrowserRouter>
 	);
 }

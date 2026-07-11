@@ -26,6 +26,7 @@ import {
 	useSearchParams,
 } from "react-router";
 import FriendRail from "../components/FriendRail";
+import { avatarInitial, useProfile } from "../lib/profile";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
 	isActive ? "nav-link active" : "nav-link";
@@ -80,6 +81,7 @@ function TopbarSearch() {
 }
 
 function Layout() {
+	const { profile } = useProfile();
 	const [collapsed, setCollapsed] = useState(
 		() => localStorage.getItem("sidebar") === "collapsed",
 	);
@@ -119,9 +121,18 @@ function Layout() {
 				</div>
 				<TopbarSearch />
 				<div className="topbar-spacer" data-tauri-drag-region />
-				<div className="avatar" title="Profile">
-					<User aria-hidden />
-				</div>
+				<NavLink
+					to="/profile"
+					className="avatar"
+					title="Profile"
+					style={profile ? { background: profile.avatarColor } : undefined}
+				>
+					{profile ? (
+						<span>{avatarInitial(profile.displayName)}</span>
+					) : (
+						<User aria-hidden />
+					)}
+				</NavLink>
 				<div className="win-controls">
 					<button
 						type="button"

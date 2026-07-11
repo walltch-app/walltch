@@ -6,3 +6,4 @@
 pub mod addon;
 pub mod library;
 pub mod ports;
+pub mod social;
