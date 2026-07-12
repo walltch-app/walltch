@@ -111,6 +111,16 @@ function mpvConfig(settings: Settings | null): MpvConfig {
 		"sub-color": settings?.subtitleColor || "#ffffff",
 		"keep-open": "yes",
 		"force-window": "yes",
+		// The source is a torrent arriving piece by piece, so opening it is
+		// bounded by what has been downloaded, not by disk. Probe as little of
+		// the file as ffmpeg will accept, keep a generous cache once it flows,
+		// and don't time out while the swarm is still warming up.
+		"demuxer-lavf-probesize": "2000000",
+		"demuxer-lavf-analyzeduration": "1",
+		cache: "yes",
+		"cache-secs": "60",
+		"demuxer-readahead-secs": "30",
+		"network-timeout": "60",
 	};
 	if (settings?.subtitleBackground) {
 		// mpv takes #AARRGGBB; B3 ≈ 70% black.
@@ -616,7 +626,10 @@ function MpvPlayer({
 				<span className="player-title">{title}</span>
 			</div>
 
-			{buffering && (
+			{/* Duration 0 means mpv has the URL but hasn't been able to read the
+			    file's header yet — from the outside that looks identical to a
+			    stall, so treat it as one. */}
+			{(buffering || duration === 0) && (
 				<div className="center-status">
 					<div className="spinner" aria-hidden />
 					{swarm && <p className="player-hint">{swarm}</p>}
