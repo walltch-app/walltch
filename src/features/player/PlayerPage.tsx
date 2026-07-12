@@ -246,6 +246,56 @@ function useProgressSaver(context: PlayContext | null) {
 	return { positionRef, durationRef, lastSavedRef, persist };
 }
 
+type FlashKind = "play" | "pause" | "back" | "forward";
+
+/** The big confirmation in the middle of the picture when a transport control
+ * is used — the one place in the player where an icon is meant to be seen from
+ * across the room. */
+function Flash({
+	flash,
+	onDone,
+}: {
+	flash: { id: number; kind: FlashKind } | null;
+	onDone: () => void;
+}) {
+	useEffect(() => {
+		if (!flash) return;
+		const timer = window.setTimeout(onDone, 500);
+		return () => window.clearTimeout(timer);
+	}, [flash, onDone]);
+
+	return (
+		<AnimatePresence>
+			{flash && (
+				<motion.div
+					key={flash.id}
+					className="player-flash"
+					initial={{ opacity: 0, scale: 0.75 }}
+					animate={{ opacity: 1, scale: 1 }}
+					exit={{ opacity: 0, scale: 1.3 }}
+					transition={{ duration: 0.25, ease: "easeOut" }}
+					aria-hidden
+				>
+					{flash.kind === "play" && <Play className="flash-icon" />}
+					{flash.kind === "pause" && <Pause className="flash-icon" />}
+					{flash.kind === "back" && (
+						<span className="flash-skip">
+							<RotateCcw className="flash-icon" />
+							<i>10</i>
+						</span>
+					)}
+					{flash.kind === "forward" && (
+						<span className="flash-skip">
+							<RotateCw className="flash-icon" />
+							<i>10</i>
+						</span>
+					)}
+				</motion.div>
+			)}
+		</AnimatePresence>
+	);
+}
+
 /** Custom seek bar: filled + buffered regions, click and drag to seek. */
 function SeekBar({
 	position,
@@ -260,6 +310,7 @@ function SeekBar({
 }) {
 	const barRef = useRef<HTMLDivElement>(null);
 	const [dragPos, setDragPos] = useState<number | null>(null);
+	const [hoverPos, setHoverPos] = useState<number | null>(null);
 	const lastSentRef = useRef(0);
 
 	const fractionAt = (clientX: number) => {
@@ -273,6 +324,10 @@ function SeekBar({
 	const playedPct = duration > 0 ? (shown / duration) * 100 : 0;
 	const bufferedPct =
 		duration > 0 ? Math.min(100, (buffered / duration) * 100) : 0;
+	// The bubble follows the cursor while hovering, the thumb while dragging.
+	const tipPos = dragPos ?? hoverPos;
+	const tipPct =
+		duration > 0 && tipPos !== null ? (tipPos / duration) * 100 : 0;
 
 	const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
 		if (duration <= 0) return;
@@ -281,7 +336,9 @@ function SeekBar({
 	};
 
 	const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-		if (dragPos === null || duration <= 0) return;
+		if (duration <= 0) return;
+		setHoverPos(fractionAt(event.clientX) * duration);
+		if (dragPos === null) return;
 		const next = fractionAt(event.clientX) * duration;
 		setDragPos(next);
 		// Live-scrub, but don't flood mpv with seeks.
@@ -311,6 +368,7 @@ function SeekBar({
 			onPointerDown={onPointerDown}
 			onPointerMove={onPointerMove}
 			onPointerUp={onPointerUp}
+			onPointerLeave={() => setHoverPos(null)}
 			onKeyDown={(event) => {
 				if (event.key === "ArrowRight") onSeek(position + 10);
 				if (event.key === "ArrowLeft") onSeek(position - 10);
@@ -324,6 +382,11 @@ function SeekBar({
 				<div className="seekbar-played" style={{ width: `${playedPct}%` }} />
 			</div>
 			<div className="seekbar-thumb" style={{ left: `${playedPct}%` }} />
+			{tipPos !== null && (
+				<span className="seekbar-tip" style={{ left: `${tipPct}%` }}>
+					{formatTime(tipPos)}
+				</span>
+			)}
 		</div>
 	);
 }
@@ -489,9 +552,27 @@ function MpvPlayer({
 		};
 	}, [url, persist, onError, positionRef, durationRef, lastSavedRef]);
 
+	// A press should be felt, not hunted for in a 38px button: every transport
+	// action throws its icon up in the middle of the picture for a moment.
+	const [flash, setFlash] = useState<{ id: number; kind: FlashKind } | null>(
+		null,
+	);
+	const showFlash = useCallback((kind: FlashKind) => {
+		setFlash({ id: Date.now(), kind });
+	}, []);
+
 	const togglePause = useCallback(() => {
 		command("cycle", ["pause"]).catch(() => {});
-	}, []);
+		showFlash(paused ? "play" : "pause");
+	}, [paused, showFlash]);
+
+	const skip = useCallback(
+		(seconds: number) => {
+			command("seek", [seconds, "relative"]).catch(() => {});
+			showFlash(seconds < 0 ? "back" : "forward");
+		},
+		[showFlash],
+	);
 
 	const seekTo = useCallback(
 		(position: number) => {
@@ -688,11 +769,7 @@ function MpvPlayer({
 					{nextLoading ? "Loading…" : "Next episode"}
 				</button>
 			)}
-			{!buffering && paused && (
-				<div className="center-status center-paused" aria-hidden>
-					<Play />
-				</div>
-			)}
+			<Flash flash={flash} onDone={() => setFlash(null)} />
 
 			<div className="chrome-bar">
 				<SeekBar
@@ -713,7 +790,7 @@ function MpvPlayer({
 					<button
 						type="button"
 						className="icon-btn skip-btn"
-						onClick={() => command("seek", [-10, "relative"]).catch(() => {})}
+						onClick={() => skip(-10)}
 						aria-label="Back 10 seconds"
 					>
 						<RotateCcw aria-hidden />
@@ -722,7 +799,7 @@ function MpvPlayer({
 					<button
 						type="button"
 						className="icon-btn skip-btn"
-						onClick={() => command("seek", [10, "relative"]).catch(() => {})}
+						onClick={() => skip(10)}
 						aria-label="Forward 10 seconds"
 					>
 						<RotateCw aria-hidden />
@@ -740,6 +817,13 @@ function MpvPlayer({
 							<SkipForward aria-hidden />
 						</button>
 					)}
+
+					<span className="time-label">
+						{formatTime(timePos)}
+						<em>{formatTime(duration)}</em>
+					</span>
+
+					<div className="chrome-spacer" />
 
 					<div className="volume-group">
 						<button
@@ -770,13 +854,6 @@ function MpvPlayer({
 							aria-label="Volume"
 						/>
 					</div>
-
-					<span className="time-label">
-						{formatTime(timePos)}
-						<em> / {formatTime(duration)}</em>
-					</span>
-
-					<div className="chrome-spacer" />
 
 					<div className="menu-anchor">
 						<button
