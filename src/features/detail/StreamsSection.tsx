@@ -124,7 +124,9 @@ function BestCard({
 function OptionRowBody({ stream }: { stream: RankedStream }) {
 	return (
 		<div className="flex items-center gap-4">
-			<span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/6 text-muted transition-colors group-hover:bg-(image:--gradient) group-hover:text-white">
+			{/* Same duration as the highlight sliding onto the row, so the two
+			    land together rather than the badge beating it there. */}
+			<span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/6 text-muted transition-colors duration-250 ease-out group-hover:bg-(image:--gradient) group-hover:text-white">
 				<Play className="size-3.5 translate-x-px fill-current" aria-hidden />
 			</span>
 			<div className="min-w-0 flex-1">
