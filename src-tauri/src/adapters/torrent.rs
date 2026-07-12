@@ -81,6 +81,10 @@ struct EngineState {
     http_addr: SocketAddr,
 }
 
+/// Ports to accept incoming peers on; the usual BitTorrent range, so routers
+/// and firewalls that special-case it behave.
+const LISTEN_PORTS: std::ops::Range<u16> = 6881..6889;
+
 /// How long to chase a magnet's metadata before calling it dead.
 const METADATA_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45);
 
@@ -182,6 +186,13 @@ impl TorrentEngine {
                     self.download_dir.clone(),
                     SessionOptions {
                         ratelimits: config.ratelimits,
+                        // Without a listening socket we can only ever dial out,
+                        // so the swarm is whatever we manage to reach — a
+                        // handful of peers and a trickle. Listening (and asking
+                        // the router to forward the port) lets seeders come to
+                        // us, which is most of the swarm.
+                        listen_port_range: Some(LISTEN_PORTS),
+                        enable_upnp_port_forwarding: true,
                         // RAM mode: pieces live in a bounded in-memory window
                         // and nothing is written to disk.
                         default_storage_factory: config
