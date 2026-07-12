@@ -20,6 +20,7 @@ import type { ProgressUpdate } from "./bindings/ProgressUpdate";
 import type { ResolvedStream } from "./bindings/ResolvedStream";
 import type { Settings } from "./bindings/Settings";
 import type { StreamSource } from "./bindings/StreamSource";
+import type { StreamTier } from "./bindings/StreamTier";
 import type { WatchlistToggle } from "./bindings/WatchlistToggle";
 import type { WatchProgress } from "./bindings/WatchProgress";
 
@@ -59,6 +60,13 @@ export function getStreams(
 	id: string,
 ): Promise<AddonStream[]> {
 	return invoke("get_streams", { contentType, id });
+}
+
+export function getStreamTiers(
+	contentType: string,
+	id: string,
+): Promise<StreamTier[]> {
+	return invoke("get_stream_tiers", { contentType, id });
 }
 
 export function getSubtitles(

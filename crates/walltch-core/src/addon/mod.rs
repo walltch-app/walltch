@@ -8,6 +8,7 @@
 pub mod client;
 pub mod manifest;
 pub mod meta;
+pub mod pick;
 pub mod response;
 pub mod stream;
 pub mod subtitle;
@@ -17,6 +18,7 @@ pub use manifest::{
     ExtraProp, Manifest, ManifestBehaviorHints, ManifestCatalog, ManifestError, ResourceRef,
 };
 pub use meta::{MetaBehaviorHints, MetaDetail, MetaPreview, Video};
+pub use pick::{Quality, Ranked, StreamFacts};
 pub use response::{CatalogResponse, MetaResponse, StreamsResponse, SubtitlesResponse};
 pub use stream::{Stream, StreamBehaviorHints, StreamSource};
 pub use subtitle::Subtitle;

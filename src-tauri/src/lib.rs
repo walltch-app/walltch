@@ -53,6 +53,7 @@ pub fn run() {
             commands::get_catalog,
             commands::get_meta,
             commands::get_streams,
+            commands::get_stream_tiers,
             commands::get_subtitles,
             commands::resolve_stream,
             commands::save_progress,

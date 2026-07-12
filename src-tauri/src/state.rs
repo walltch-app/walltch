@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::RwLock;
 use walltch_core::addon::{
-    AddonClient, AddonError, ExtraProp, Manifest, MetaDetail, MetaPreview, Stream, Subtitle,
+    pick, AddonClient, AddonError, ExtraProp, Manifest, MetaDetail, MetaPreview, Quality, Stream,
+    StreamFacts, Subtitle,
 };
 use walltch_core::library::{ContinueWatching, LibraryItem, WatchProgress, Watchlist};
 use walltch_core::ports::{Clock, HttpClient, Storage, StorageError};
@@ -65,6 +66,28 @@ pub struct AddonStream {
     pub addon_name: String,
     #[serde(flatten)]
     pub stream: Stream,
+}
+
+/// A stream with what we managed to read off its release name.
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct RankedStream {
+    #[serde(flatten)]
+    pub stream: AddonStream,
+    pub facts: StreamFacts,
+}
+
+/// One quality's worth of streams: the one we'd press play on, and the rest
+/// kept behind it for anyone who wants to look.
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct StreamTier {
+    pub quality: Quality,
+    pub label: String,
+    pub best: RankedStream,
+    pub alternatives: Vec<RankedStream>,
 }
 
 /// A subtitle annotated with which addon offered it.
@@ -501,6 +524,40 @@ impl AppState {
                 })
             })
             .collect())
+    }
+
+    /// The same streams, cut down to a choice a person can make: one pick per
+    /// quality, best first, everything else tucked behind it.
+    pub async fn get_stream_tiers(
+        &self,
+        content_type: &str,
+        id: &str,
+    ) -> Result<Vec<StreamTier>, AppError> {
+        let mut ranked: Vec<(f32, RankedStream)> = self
+            .get_streams(content_type, id)
+            .await?
+            .into_iter()
+            .map(|stream| {
+                let facts = pick::facts(&stream.stream);
+                (pick::score(&facts), RankedStream { stream, facts })
+            })
+            .collect();
+        ranked.sort_by(|(a, _), (b, _)| b.total_cmp(a));
+
+        let mut tiers: Vec<StreamTier> = Vec::new();
+        for (_, ranked) in ranked {
+            match tiers.iter_mut().find(|t| t.quality == ranked.facts.quality) {
+                Some(tier) => tier.alternatives.push(ranked),
+                None => tiers.push(StreamTier {
+                    quality: ranked.facts.quality,
+                    label: ranked.facts.quality.label().to_owned(),
+                    best: ranked,
+                    alternatives: Vec::new(),
+                }),
+            }
+        }
+        tiers.sort_by_key(|tier| tier.quality);
+        Ok(tiers)
     }
 }
 

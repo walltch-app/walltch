@@ -14,7 +14,7 @@ use crate::adapters::torrent::{DownloadEntry, EngineConfig, ResolvedStream};
 use crate::adapters::{SupabaseAuth, SupabaseSocial, TorrentEngine};
 use crate::state::{
     AddonStream, AddonSubtitle, AppState, CacheMode, CatalogDescriptor, InstalledAddon,
-    ProfileUpdate, ProgressUpdate, Settings, WatchlistToggle,
+    ProfileUpdate, ProgressUpdate, Settings, StreamTier, WatchlistToggle,
 };
 
 #[tauri::command]
@@ -359,6 +359,19 @@ pub async fn get_streams(
 ) -> Result<Vec<AddonStream>, String> {
     state
         .get_streams(&content_type, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// What the detail page shows: one pick per quality instead of forty rows.
+#[tauri::command]
+pub async fn get_stream_tiers(
+    state: State<'_, AppState>,
+    content_type: String,
+    id: String,
+) -> Result<Vec<StreamTier>, String> {
+    state
+        .get_stream_tiers(&content_type, &id)
         .await
         .map_err(|e| e.to_string())
 }
