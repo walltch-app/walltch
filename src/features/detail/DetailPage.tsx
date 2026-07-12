@@ -5,10 +5,12 @@ import {
 	getMeta,
 	getStreamTiers,
 	inWatchlist,
+	listContinueWatching,
 	toggleWatchlist,
 } from "../../lib/api";
 import type { MetaDetail } from "../../lib/bindings/MetaDetail";
 import type { Video } from "../../lib/bindings/Video";
+import type { WatchProgress } from "../../lib/bindings/WatchProgress";
 import type { PlayerLocationState } from "../player/PlayerPage";
 import StreamsSection from "./StreamsSection";
 import "./detail.css";
@@ -24,6 +26,17 @@ function episodeLabel(video: Video) {
 	return video.title ?? video.id;
 }
 
+/** Series order: by season (specials last), then episode. */
+function episodeOrder(a: Video, b: Video) {
+	const seasonKey = (v: Video) =>
+		v.season === 0 ? Number.POSITIVE_INFINITY : (v.season ?? 0);
+	return seasonKey(a) - seasonKey(b) || (a.episode ?? 0) - (b.episode ?? 0);
+}
+
+/** Past this much of an episode, it counts as watched and the hero offers the
+ * next one instead of dropping you into the credits. */
+const FINISHED_FRACTION = 0.92;
+
 function DetailPage() {
 	const { type = "", id = "" } = useParams();
 	const metaId = decodeURIComponent(id);
@@ -36,6 +49,7 @@ function DetailPage() {
 	const [saved, setSaved] = useState<boolean | null>(null);
 	const [starting, setStarting] = useState(false);
 	const [streamError, setStreamError] = useState<string | null>(null);
+	const [progress, setProgress] = useState<WatchProgress | null>(null);
 
 	useEffect(() => {
 		setMeta(null);
@@ -43,12 +57,20 @@ function DetailPage() {
 		setSeason(null);
 		setSelected(null);
 		setSaved(null);
+		setProgress(null);
 		getMeta(type, metaId)
 			.then(setMeta)
 			.catch((e) => setError(String(e)));
 		inWatchlist(metaId)
 			.then(setSaved)
 			.catch(() => setSaved(false));
+		// One continue-watching entry is kept per title, so this is the episode
+		// the hero button should offer.
+		listContinueWatching()
+			.then((entries) =>
+				setProgress(entries.find((entry) => entry.metaId === metaId) ?? null),
+			)
+			.catch(() => {});
 	}, [type, metaId]);
 
 	async function onToggleSaved() {
@@ -68,12 +90,14 @@ function DetailPage() {
 	}
 
 	// One press of play: take the tier settings ask for and start it, without
-	// making anyone scroll down and read release names.
-	async function playPreferred() {
+	// making anyone scroll down and read release names. For a series, `video`
+	// is the episode to open; the player picks the position back up itself.
+	async function playPreferred(video?: Video) {
 		if (!meta || starting) return;
+		const videoId = video?.id ?? meta.id;
 		setStarting(true);
 		try {
-			const tiers = await getStreamTiers(type, meta.id);
+			const tiers = await getStreamTiers(type, videoId);
 			const tier = tiers.find((t) => t.preferred) ?? tiers[0];
 			if (!tier) {
 				setStreamError("None of your addons offered a stream for this.");
@@ -81,10 +105,10 @@ function DetailPage() {
 			}
 			const state: PlayerLocationState = {
 				stream: tier.best,
-				title: meta.name,
+				title: video ? `${meta.name} — ${episodeLabel(video)}` : meta.name,
 				context: {
 					metaId: meta.id,
-					videoId: meta.id,
+					videoId,
 					contentType: type,
 					name: meta.name,
 					poster: meta.poster,
@@ -125,6 +149,24 @@ function DetailPage() {
 	}, [meta, seasons, season]);
 
 	const isSeries = meta !== null && meta.videos.length > 0;
+
+	/** What one press of play means for a series: carry on with the episode
+	 * you're in the middle of, move to the one after it if you finished it, or
+	 * start from the beginning. */
+	const upNext = useMemo(() => {
+		if (!meta || !isSeries) return null;
+		const ordered = [...meta.videos].sort(episodeOrder);
+		if (!progress || progress.durationSecs <= 0) {
+			return ordered[0] ? { video: ordered[0], resuming: false } : null;
+		}
+		const index = ordered.findIndex((v) => v.id === progress.videoId);
+		if (index < 0) return { video: ordered[0], resuming: false };
+		const finished =
+			progress.positionSecs / progress.durationSecs > FINISHED_FRACTION;
+		if (!finished) return { video: ordered[index], resuming: true };
+		const after = ordered[index + 1];
+		return after ? { video: after, resuming: false } : null;
+	}, [meta, isSeries, progress]);
 
 	const metaLine = meta
 		? [meta.releaseInfo, meta.runtime, ...meta.genres.slice(0, 3)].filter(
@@ -177,11 +219,24 @@ function DetailPage() {
 									<button
 										type="button"
 										className="btn"
-										onClick={playPreferred}
+										onClick={() => playPreferred()}
 										disabled={starting}
 									>
 										<Play aria-hidden />
 										{starting ? "Finding a stream…" : "Play"}
+									</button>
+								)}
+								{isSeries && upNext && (
+									<button
+										type="button"
+										className="btn"
+										onClick={() => playPreferred(upNext.video)}
+										disabled={starting}
+									>
+										<Play aria-hidden />
+										{starting
+											? "Finding a stream…"
+											: `${upNext.resuming ? "Continue" : "Play"} ${episodeLabel(upNext.video)}`}
 									</button>
 								)}
 								<button

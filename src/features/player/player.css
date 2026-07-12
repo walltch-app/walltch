@@ -111,14 +111,11 @@
 	box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 65%, transparent);
 }
 
+/* The chip is what grows on hover; nudging the arrow inside it as well made
+   the two transforms fight and the glyph blur against the circle's edge. */
 .skip-intro-chip svg {
 	width: 21px;
 	height: 21px;
-	transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.skip-intro:hover .skip-intro-chip svg {
-	transform: translateX(3px);
 }
 
 .skip-intro-text {
