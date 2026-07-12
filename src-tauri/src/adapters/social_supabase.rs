@@ -104,11 +104,50 @@ impl SupabaseSocial {
                 None,
             )
             .await?;
-        let row = value
-            .as_array()
-            .and_then(|rows| rows.first())
-            .ok_or_else(|| backend("Your profile hasn't synced yet."))?;
-        Ok(profile_from_row(&me, row))
+        match value.as_array().and_then(|rows| rows.first()) {
+            Some(row) => Ok(profile_from_row(&me, row)),
+            None => self.provision(&me).await,
+        }
+    }
+
+    /// The database mints a profile row when the account is created, but the
+    /// row can still go missing — deleted by hand, or an account that predates
+    /// the trigger. Write a fresh one instead of leaving the app with no
+    /// identity to show; setup then asks for the name and mascot as usual.
+    async fn provision(&self, me: &str) -> Result<Profile, SocialError> {
+        let email = self.auth.status().await.email.unwrap_or_default();
+        let display_name = clean_display_name(email.split('@').next().unwrap_or_default());
+        // A minted code can collide with someone else's; the unique index
+        // rejects it as a conflict, so try again with another one.
+        for _ in 0..4 {
+            let result = self
+                .rest(
+                    Method::POST,
+                    "profiles",
+                    Some(json!({
+                        "id": me,
+                        "display_name": display_name,
+                        "friend_code": mint_friend_code(),
+                        "avatar": "",
+                        "avatar_color": "#0353f2",
+                        "onboarded": false,
+                    })),
+                    Some("return=representation"),
+                )
+                .await;
+            match result {
+                Ok(value) => {
+                    let row = value
+                        .as_array()
+                        .and_then(|rows| rows.first())
+                        .ok_or_else(|| backend("Couldn't read back the new profile."))?;
+                    return Ok(profile_from_row(me, row));
+                }
+                Err(SocialError::AlreadyAdded) => continue,
+                Err(err) => return Err(err),
+            }
+        }
+        Err(backend("Couldn't find a free friend code."))
     }
 
     /// Saving a name and avatar is what completes setup, so this also flips
@@ -311,6 +350,23 @@ impl SupabaseSocial {
             .unwrap_or_default();
         Ok(items)
     }
+}
+
+/// Eight digits — the shape of the code people trade to become friends.
+fn mint_friend_code() -> String {
+    let mut bytes = [0u8; 8];
+    if getrandom::getrandom(&mut bytes).is_err() {
+        // No system randomness: fall back to the clock, which is still spread
+        // out enough for a code that only has to be unique.
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .subsec_nanos();
+        bytes = nanos.to_le_bytes().repeat(2)[..8]
+            .try_into()
+            .unwrap_or(bytes);
+    }
+    bytes.iter().map(|b| char::from(b'0' + b % 10)).collect()
 }
 
 fn profile_from_row(id: &str, row: &Value) -> Profile {

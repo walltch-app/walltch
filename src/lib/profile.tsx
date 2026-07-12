@@ -1,6 +1,7 @@
 import {
 	createContext,
 	type ReactNode,
+	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
@@ -12,12 +13,17 @@ import type { Profile } from "./bindings/Profile";
 
 type ProfileContextValue = {
 	profile: Profile | null;
+	/** Why the profile couldn't be loaded — the app can't run without it. */
+	error: string | null;
 	setProfile: (profile: Profile) => void;
+	reload: () => void;
 };
 
 const ProfileContext = createContext<ProfileContextValue>({
 	profile: null,
+	error: null,
 	setProfile: () => {},
+	reload: () => {},
 });
 
 /** Loads the local profile once and shares it, so the topbar avatar and the
@@ -25,20 +31,30 @@ const ProfileContext = createContext<ProfileContextValue>({
 export function ProfileProvider({ children }: { children: ReactNode }) {
 	const { status } = useAuth();
 	const [profile, setProfile] = useState<Profile | null>(null);
+	const [error, setError] = useState<string | null>(null);
+
+	const load = useCallback(() => {
+		setError(null);
+		getProfile()
+			.then(setProfile)
+			.catch((err) => setError(String(err)));
+	}, []);
 
 	// The profile is the account, so it only exists while signed in.
 	const signedIn = status?.signedIn ?? false;
 	useEffect(() => {
 		if (!signedIn) {
 			setProfile(null);
+			setError(null);
 			return;
 		}
-		getProfile()
-			.then(setProfile)
-			.catch(() => {});
-	}, [signedIn]);
+		load();
+	}, [signedIn, load]);
 
-	const value = useMemo(() => ({ profile, setProfile }), [profile]);
+	const value = useMemo(
+		() => ({ profile, error, setProfile, reload: load }),
+		[profile, error, load],
+	);
 	return (
 		<ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>
 	);
