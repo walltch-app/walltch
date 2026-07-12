@@ -1,9 +1,15 @@
-import { ArrowLeft, Bookmark, BookmarkCheck, Star } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Play, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { getMeta, inWatchlist, toggleWatchlist } from "../../lib/api";
+import {
+	getMeta,
+	getStreamTiers,
+	inWatchlist,
+	toggleWatchlist,
+} from "../../lib/api";
 import type { MetaDetail } from "../../lib/bindings/MetaDetail";
 import type { Video } from "../../lib/bindings/Video";
+import type { PlayerLocationState } from "../player/PlayerPage";
 import StreamsSection from "./StreamsSection";
 import "./detail.css";
 
@@ -28,6 +34,8 @@ function DetailPage() {
 	const [season, setSeason] = useState<number | null>(null);
 	const [selected, setSelected] = useState<Video | null>(null);
 	const [saved, setSaved] = useState<boolean | null>(null);
+	const [starting, setStarting] = useState(false);
+	const [streamError, setStreamError] = useState<string | null>(null);
 
 	useEffect(() => {
 		setMeta(null);
@@ -56,6 +64,38 @@ function DetailPage() {
 			);
 		} catch {
 			// Leave the button as-is; the next page load shows the truth.
+		}
+	}
+
+	// One press of play: take the tier settings ask for and start it, without
+	// making anyone scroll down and read release names.
+	async function playPreferred() {
+		if (!meta || starting) return;
+		setStarting(true);
+		try {
+			const tiers = await getStreamTiers(type, meta.id);
+			const tier = tiers.find((t) => t.preferred) ?? tiers[0];
+			if (!tier) {
+				setStreamError("None of your addons offered a stream for this.");
+				return;
+			}
+			const state: PlayerLocationState = {
+				stream: tier.best,
+				title: meta.name,
+				context: {
+					metaId: meta.id,
+					videoId: meta.id,
+					contentType: type,
+					name: meta.name,
+					poster: meta.poster,
+					background: meta.background,
+				},
+			};
+			navigate("/player", { state });
+		} catch (e) {
+			setStreamError(String(e));
+		} finally {
+			setStarting(false);
 		}
 	}
 
@@ -132,19 +172,32 @@ function DetailPage() {
 							{meta.description && (
 								<p className="hero-overview">{meta.description}</p>
 							)}
-							<button
-								type="button"
-								className={saved ? "btn-save btn-saved" : "btn-save"}
-								onClick={onToggleSaved}
-								disabled={saved === null}
-							>
-								{saved ? (
-									<BookmarkCheck aria-hidden />
-								) : (
-									<Bookmark aria-hidden />
+							<div className="hero-actions">
+								{!isSeries && (
+									<button
+										type="button"
+										className="btn"
+										onClick={playPreferred}
+										disabled={starting}
+									>
+										<Play aria-hidden />
+										{starting ? "Finding a stream…" : "Play"}
+									</button>
 								)}
-								{saved ? "In library" : "Add to library"}
-							</button>
+								<button
+									type="button"
+									className={saved ? "btn-save btn-saved" : "btn-save"}
+									onClick={onToggleSaved}
+									disabled={saved === null}
+								>
+									{saved ? (
+										<BookmarkCheck aria-hidden />
+									) : (
+										<Bookmark aria-hidden />
+									)}
+									{saved ? "In library" : "Add to library"}
+								</button>
+							</div>
 						</div>
 					</div>
 				)}
@@ -152,6 +205,7 @@ function DetailPage() {
 
 			<div className="detail-body">
 				{error && <p className="row-note">Couldn't load this title: {error}</p>}
+				{streamError && <p className="row-note">{streamError}</p>}
 				{!meta && !error && <p className="row-note">Loading…</p>}
 
 				{isSeries && (

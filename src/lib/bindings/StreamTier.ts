@@ -6,4 +6,9 @@ import type { RankedStream } from "./RankedStream";
  * One quality's worth of streams: the one we'd press play on, and the rest
  * kept behind it for anyone who wants to look.
  */
-export type StreamTier = { quality: Quality, label: string, best: RankedStream, alternatives: Array<RankedStream>, };
+export type StreamTier = { quality: Quality, label: string, 
+/**
+ * The tier a single press of play would open — the quality asked for in
+ * settings, or the best available when it isn't served.
+ */
+preferred: boolean, best: RankedStream, alternatives: Array<RankedStream>, };

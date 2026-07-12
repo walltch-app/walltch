@@ -121,11 +121,24 @@
 	overflow: hidden;
 }
 
+/* Play leads, library sits next to it. */
+.hero-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 16px;
+}
+
+.hero-actions .btn svg {
+	width: 16px;
+	height: 16px;
+	fill: currentColor;
+}
+
 .btn-save {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	margin-top: 16px;
 	padding: 8px 16px;
 	border: 1px solid var(--line);
 	border-radius: var(--radius);

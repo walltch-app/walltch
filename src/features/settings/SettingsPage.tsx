@@ -7,6 +7,15 @@ import { SUBTITLE_LANGS } from "../../lib/lang";
 import { ACCENTS, type AccentId, applyAccent } from "../../lib/theme";
 import "./settings.css";
 
+/** Ids match walltch-core's Quality; "" means take the best on offer. */
+const QUALITIES: [id: string, label: string][] = [
+	["", "Best available"],
+	["uhd", "4K"],
+	["fhd", "1080p"],
+	["hd", "720p"],
+	["sd", "Data saver"],
+];
+
 const CACHE_MODES: {
 	id: CacheMode;
 	label: string;
@@ -82,6 +91,31 @@ function SettingsPage() {
 									title={ACCENTS[id].name}
 								>
 									{settings.accent === id && <Check aria-hidden />}
+								</button>
+							))}
+						</div>
+					</section>
+
+					<section className="settings-section">
+						<h2>Playback</h2>
+						<p className="settings-hint">
+							The quality a single press of play opens. Streams are grouped by
+							quality on the detail page, and this one leads. If a title isn't
+							served in it, the next one down is used.
+						</p>
+						<div className="size-chips">
+							{QUALITIES.map(([id, label]) => (
+								<button
+									type="button"
+									key={id}
+									className={
+										settings.preferredQuality === id
+											? "chip chip-active"
+											: "chip"
+									}
+									onClick={() => update({ ...settings, preferredQuality: id })}
+								>
+									{label}
 								</button>
 							))}
 						</div>

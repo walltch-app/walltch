@@ -59,11 +59,7 @@ function ProfileError({
 					</div>
 					<h1 className="gate-title">Couldn't load your profile</h1>
 					<p className="gate-lede">{message}</p>
-					<button
-						type="button"
-						className="primary gate-submit"
-						onClick={onRetry}
-					>
+					<button type="button" className="btn gate-submit" onClick={onRetry}>
 						Try again
 					</button>
 					<button type="button" className="auth-toggle" onClick={signOut}>

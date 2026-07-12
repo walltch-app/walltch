@@ -86,6 +86,9 @@ pub struct RankedStream {
 pub struct StreamTier {
     pub quality: Quality,
     pub label: String,
+    /// The tier a single press of play would open — the quality asked for in
+    /// settings, or the best available when it isn't served.
+    pub preferred: bool,
     pub best: RankedStream,
     pub alternatives: Vec<RankedStream>,
 }
@@ -140,6 +143,21 @@ pub struct Settings {
     pub subtitle_color: String,
     /// Draw a translucent box behind subtitles for readability.
     pub subtitle_background: bool,
+    /// Which quality to open with. Empty means "whatever's best".
+    pub preferred_quality: String,
+}
+
+impl Settings {
+    /// The quality the user asked for, if they asked for one.
+    fn quality(&self) -> Option<Quality> {
+        match self.preferred_quality.as_str() {
+            "uhd" => Some(Quality::Uhd),
+            "fhd" => Some(Quality::Fhd),
+            "hd" => Some(Quality::Hd),
+            "sd" => Some(Quality::Sd),
+            _ => None,
+        }
+    }
 }
 
 impl Default for Settings {
@@ -155,6 +173,7 @@ impl Default for Settings {
             preferred_subtitle_lang: String::new(),
             subtitle_color: "#ffffff".to_owned(),
             subtitle_background: false,
+            preferred_quality: String::new(),
         }
     }
 }
@@ -533,13 +552,20 @@ impl AppState {
         content_type: &str,
         id: &str,
     ) -> Result<Vec<StreamTier>, AppError> {
+        let settings = self.settings().await;
+        // mpv decodes anything; the webview is fussy, and scoring has to know.
+        let ctx = pick::PickContext {
+            webview_only: !settings.use_mpv,
+            preferred: settings.quality(),
+        };
+
         let mut ranked: Vec<(f32, RankedStream)> = self
             .get_streams(content_type, id)
             .await?
             .into_iter()
             .map(|stream| {
                 let facts = pick::facts(&stream.stream);
-                (pick::score(&facts), RankedStream { stream, facts })
+                (pick::score(&facts, &ctx), RankedStream { stream, facts })
             })
             .collect();
         ranked.sort_by(|(a, _), (b, _)| b.total_cmp(a));
@@ -551,12 +577,19 @@ impl AppState {
                 None => tiers.push(StreamTier {
                     quality: ranked.facts.quality,
                     label: ranked.facts.quality.label().to_owned(),
+                    preferred: false,
                     best: ranked,
                     alternatives: Vec::new(),
                 }),
             }
         }
         tiers.sort_by_key(|tier| tier.quality);
+
+        let served: Vec<Quality> = tiers.iter().map(|tier| tier.quality).collect();
+        let opening = pick::preferred_quality(&served, ctx.preferred);
+        for tier in &mut tiers {
+            tier.preferred = Some(tier.quality) == opening;
+        }
         Ok(tiers)
     }
 }

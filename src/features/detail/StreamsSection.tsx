@@ -31,7 +31,7 @@ function Facts({ stream }: { stream: RankedStream }) {
 	const { seeders, sizeBytes, hdr, webPlayable } = stream.facts;
 	const size = formatSize(sizeBytes);
 	return (
-		<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+		<div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
 			{seeders !== null && (
 				<span className="inline-flex items-center gap-1">
 					<Users className="size-3.5" aria-hidden />
@@ -68,29 +68,40 @@ function TierCard({
 	const [open, setOpen] = useState(false);
 
 	return (
-		<li className="overflow-hidden rounded-2xl border border-line bg-surface/70">
-			<div className="flex items-center gap-4 p-4">
-				<span className="w-16 shrink-0 text-center font-display text-lg font-bold">
+		<li
+			className={`group overflow-hidden rounded-2xl border bg-surface/60 transition-colors ${
+				tier.preferred
+					? "border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_7%,var(--surface))]"
+					: "border-line hover:border-white/15"
+			}`}
+		>
+			<button
+				type="button"
+				className="flex w-full items-center gap-4 p-3.5 text-left"
+				onClick={() => onPlay(tier.best)}
+			>
+				<span
+					className={`grid size-14 shrink-0 place-items-center rounded-xl font-display text-sm font-bold tracking-tight ${
+						tier.preferred
+							? "bg-(image:--gradient) text-white"
+							: "bg-white/6 text-text/90"
+					}`}
+				>
 					{tier.label}
 				</span>
 				<div className="min-w-0 flex-1">
-					<p className="truncate text-[0.95rem] font-medium text-text">
+					<p className="truncate text-[0.95rem] leading-snug font-medium text-text">
 						{tier.best.facts.release ?? tier.best.name ?? "Stream"}
 					</p>
 					<Facts stream={tier.best} />
 				</div>
-				<button
-					type="button"
-					className="primary inline-flex shrink-0 items-center gap-2"
-					onClick={() => onPlay(tier.best)}
-				>
-					<Play className="size-4 fill-current" aria-hidden />
-					Play
-				</button>
-			</div>
+				<span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/8 text-text transition-transform group-hover:scale-105 group-hover:bg-(image:--gradient)">
+					<Play className="size-4 translate-x-px fill-current" aria-hidden />
+				</span>
+			</button>
 
 			{tier.alternatives.length > 0 && (
-				<div className="border-t border-line">
+				<div className="border-t border-line/60">
 					<button
 						type="button"
 						className="flex w-full items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-muted transition-colors hover:text-text"
@@ -101,25 +112,28 @@ function TierCard({
 							aria-hidden
 						/>
 						{open
-							? "Hide"
+							? "Hide alternatives"
 							: `${tier.alternatives.length} more in ${tier.label}`}
 					</button>
 					{open && (
-						<ul className="px-2 pb-2">
+						<ul className="flex flex-col gap-0.5 px-2 pb-2">
 							{tier.alternatives.map((stream) => (
 								<li key={streamKey(stream)}>
 									<button
 										type="button"
-										className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/5"
+										className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/5"
 										onClick={() => onPlay(stream)}
 									>
 										<div className="min-w-0 flex-1">
-											<p className="truncate text-sm text-text/90">
+											<p className="truncate text-sm leading-snug text-text/85">
 												{stream.facts.release ?? stream.name ?? "Stream"}
 											</p>
 											<Facts stream={stream} />
 										</div>
-										<Play className="size-4 shrink-0 text-muted" aria-hidden />
+										<Play
+											className="size-3.5 shrink-0 fill-current text-muted"
+											aria-hidden
+										/>
 									</button>
 								</li>
 							))}
@@ -189,9 +203,12 @@ function StreamsSection({
 			)}
 			{tiers && tiers.length > 0 && (
 				<ul className="flex flex-col gap-3">
-					{tiers.map((tier) => (
-						<TierCard key={tier.quality} tier={tier} onPlay={play} />
-					))}
+					{/* The quality you'd get from a single press of play leads. */}
+					{[...tiers]
+						.sort((a, b) => Number(b.preferred) - Number(a.preferred))
+						.map((tier) => (
+							<TierCard key={tier.quality} tier={tier} onPlay={play} />
+						))}
 				</ul>
 			)}
 		</section>

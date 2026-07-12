@@ -68,6 +68,16 @@ pub struct Ranked<'a> {
     pub score: f32,
 }
 
+/// What the scoring needs to know about the player it's picking for.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct PickContext {
+    /// True when playback goes through the webview's `<video>`, which only
+    /// handles H.264 in MP4. With mpv driving, codec stops mattering.
+    pub webview_only: bool,
+    /// The quality the user asked for, if they picked one.
+    pub preferred: Option<Quality>,
+}
+
 /// Read a stream's name, title and hints into facts.
 pub fn facts(stream: &Stream) -> StreamFacts {
     let text = [
@@ -106,17 +116,17 @@ pub fn facts(stream: &Stream) -> StreamFacts {
 }
 
 /// Higher is better. Swarm size leads — it's what decides whether the thing
-/// starts at all — but a stream we can't play, or one so big it will stall,
-/// gives most of that back.
-pub fn score(facts: &StreamFacts) -> f32 {
+/// starts at all — but a file the player can't decode, or one so big it will
+/// stall, gives most of that back.
+pub fn score(facts: &StreamFacts, ctx: &PickContext) -> f32 {
     let mut score = ((facts.seeders.unwrap_or(0) as f32) + 1.0).log10() * 24.0;
 
-    if !facts.web_playable {
+    // Only the webview cares what's inside the container; mpv plays it all.
+    if ctx.webview_only && !facts.web_playable {
         score -= 26.0;
     }
-    if facts.hdr {
-        // Tone-mapped to nothing on a webview, and often the biggest file in
-        // the tier. Worth having, not worth defaulting to.
+    if ctx.webview_only && facts.hdr {
+        // Tone-mapped to nothing there, and usually the biggest file around.
         score -= 6.0;
     }
     if let Some(size) = facts.size_bytes {
@@ -128,13 +138,13 @@ pub fn score(facts: &StreamFacts) -> f32 {
     score
 }
 
-/// Rank a set of streams from best to worst within one quality tier.
-pub fn rank(streams: &[Stream]) -> Vec<Ranked<'_>> {
+/// Rank a set of streams: by quality tier, best first within each.
+pub fn rank<'a>(streams: &'a [Stream], ctx: &PickContext) -> Vec<Ranked<'a>> {
     let mut ranked: Vec<Ranked> = streams
         .iter()
         .map(|stream| {
             let facts = facts(stream);
-            let score = score(&facts);
+            let score = score(&facts, ctx);
             Ranked {
                 stream,
                 facts,
@@ -149,6 +159,24 @@ pub fn rank(streams: &[Stream]) -> Vec<Ranked<'_>> {
             .then(b.score.total_cmp(&a.score))
     });
     ranked
+}
+
+/// Which quality to open with: the one asked for if anything serves it,
+/// otherwise the closest thing below it, otherwise the best on offer.
+pub fn preferred_quality(available: &[Quality], preferred: Option<Quality>) -> Option<Quality> {
+    let best = available.iter().min().copied();
+    let Some(wanted) = preferred else { return best };
+    if available.contains(&wanted) {
+        return Some(wanted);
+    }
+    // Ordering runs Uhd < Fhd < Hd < Sd, so "the next one down" is the
+    // smallest tier still above the one we wanted.
+    available
+        .iter()
+        .filter(|quality| **quality > wanted)
+        .min()
+        .copied()
+        .or(best)
 }
 
 fn read_quality(text: &str) -> Quality {
@@ -248,8 +276,17 @@ mod tests {
         );
     }
 
+    const MPV: PickContext = PickContext {
+        webview_only: false,
+        preferred: None,
+    };
+    const WEBVIEW: PickContext = PickContext {
+        webview_only: true,
+        preferred: None,
+    };
+
     #[test]
-    fn a_playable_release_beats_a_bigger_swarm_it_cannot_play() {
+    fn the_webview_prefers_a_release_it_can_actually_decode() {
         let hevc = torrent(
             "Torrentio\n1080p",
             "Movie.2026.1080p.WEB-DL.x265\n👤 900 💾 3 GB",
@@ -260,7 +297,9 @@ mod tests {
             "Movie.2026.1080p.WEB-DL.x264.MP4\n👤 120 💾 3 GB",
             false,
         );
-        assert!(score(&facts(&h264)) > score(&facts(&hevc)));
+        assert!(score(&facts(&h264), &WEBVIEW) > score(&facts(&hevc), &WEBVIEW));
+        // mpv decodes both, so the bigger swarm wins again.
+        assert!(score(&facts(&hevc), &MPV) > score(&facts(&h264), &MPV));
     }
 
     #[test]
@@ -275,7 +314,27 @@ mod tests {
             "Movie.2026.1080p.WEB-DL.x264\n👤 300 💾 3 GB",
             false,
         );
-        assert!(score(&facts(&web)) > score(&facts(&remux)));
+        assert!(score(&facts(&web), &MPV) > score(&facts(&remux), &MPV));
+    }
+
+    #[test]
+    fn a_missing_quality_falls_back_to_the_next_one_down() {
+        let available = [Quality::Uhd, Quality::Hd, Quality::Sd];
+        assert_eq!(
+            preferred_quality(&available, Some(Quality::Fhd)),
+            Some(Quality::Hd)
+        );
+        assert_eq!(
+            preferred_quality(&available, Some(Quality::Uhd)),
+            Some(Quality::Uhd)
+        );
+        // Nothing below what was asked for: take the best there is.
+        assert_eq!(
+            preferred_quality(&[Quality::Uhd], Some(Quality::Sd)),
+            Some(Quality::Uhd)
+        );
+        assert_eq!(preferred_quality(&available, None), Some(Quality::Uhd));
+        assert_eq!(preferred_quality(&[], Some(Quality::Fhd)), None);
     }
 
     #[test]
@@ -289,7 +348,7 @@ mod tests {
                 false,
             ),
         ];
-        let ranked = rank(&streams);
+        let ranked = rank(&streams, &MPV);
         assert_eq!(ranked[0].facts.quality, Quality::Fhd);
         assert_eq!(ranked[0].facts.seeders, Some(800));
         assert_eq!(ranked[1].facts.seeders, Some(40));

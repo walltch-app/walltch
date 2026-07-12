@@ -45,4 +45,8 @@ subtitleColor: string,
 /**
  * Draw a translucent box behind subtitles for readability.
  */
-subtitleBackground: boolean, };
+subtitleBackground: boolean, 
+/**
+ * Which quality to open with. Empty means "whatever's best".
+ */
+preferredQuality: string, };
