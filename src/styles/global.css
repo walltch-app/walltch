@@ -52,8 +52,9 @@
 	box-sizing: border-box;
 }
 
-/* Buttons start bare. Every button in the app draws itself, and a component
-   styled with utilities shouldn't have to undo the browser's grey chrome. */
+/* Buttons and lists start bare. Every one in the app draws itself, and a
+   component styled with utilities shouldn't have to undo the browser's grey
+   chrome or its bullet points. */
 button {
 	padding: 0;
 	border: 0;
@@ -61,6 +62,12 @@ button {
 	color: inherit;
 	font: inherit;
 	cursor: pointer;
+}
+
+ul,
+ol {
+	padding: 0;
+	list-style: none;
 }
 
 html,
