@@ -1,6 +1,7 @@
 import { Check, HardDrive, Play, TriangleAlert, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import { AnimatedBackground } from "@/components/ui/animated-background";
 import { getStreamTiers } from "@/lib/api";
 import type { Quality } from "@/lib/bindings/Quality";
 import type { RankedStream } from "@/lib/bindings/RankedStream";
@@ -222,23 +223,28 @@ function StreamsSection({
 			{tiers && tier && (
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-wrap gap-1 self-start rounded-full border border-line bg-surface/60 p-1">
-						{tiers.map((option) => (
-							<button
-								key={option.quality}
-								type="button"
-								onClick={() => setActive(option.quality)}
-								className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-									option.quality === tier.quality
-										? "bg-(image:--gradient) text-white"
-										: "text-muted hover:text-text"
-								}`}
-							>
-								{option.label}
-								<span className="ml-2 text-xs font-normal opacity-65">
-									{option.alternatives.length + 1}
-								</span>
-							</button>
-						))}
+						<AnimatedBackground
+							defaultValue={tier.quality}
+							onValueChange={(quality) =>
+								quality && setActive(quality as Quality)
+							}
+							className="rounded-full bg-(image:--gradient)"
+							transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+						>
+							{tiers.map((option) => (
+								<button
+									key={option.quality}
+									data-id={option.quality}
+									type="button"
+									className="rounded-full px-4 py-2 text-sm font-semibold text-muted transition-colors duration-300 data-[checked=true]:text-white hover:text-text"
+								>
+									{option.label}
+									<span className="ml-2 text-xs font-normal opacity-65">
+										{option.alternatives.length + 1}
+									</span>
+								</button>
+							))}
+						</AnimatedBackground>
 					</div>
 
 					<BestCard
