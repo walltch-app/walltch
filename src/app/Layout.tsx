@@ -24,6 +24,7 @@ import {
 } from "react-router";
 import FriendRail from "../components/FriendRail";
 import WindowControls from "../components/WindowControls";
+import { avatarUri } from "../lib/avatar";
 import { avatarInitial, useProfile } from "../lib/profile";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -123,10 +124,12 @@ function Layout() {
 					title="Profile"
 					style={profile ? { background: profile.avatarColor } : undefined}
 				>
-					{profile ? (
-						<span>{avatarInitial(profile.displayName)}</span>
-					) : (
+					{!profile ? (
 						<User aria-hidden />
+					) : profile.avatar ? (
+						<img src={avatarUri(profile.avatar, profile.avatarColor)} alt="" />
+					) : (
+						<span>{avatarInitial(profile.displayName)}</span>
 					)}
 				</NavLink>
 				<WindowControls />

@@ -3,4 +3,4 @@
 /**
  * The editable slice of a profile; identity fields stay server/owned.
  */
-export type ProfileUpdate = { displayName: string, avatarColor: string, };
+export type ProfileUpdate = { displayName: string, avatar: string, avatarColor: string, };

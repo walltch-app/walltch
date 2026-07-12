@@ -18,7 +18,10 @@ pub struct Profile {
     pub display_name: String,
     /// Short code others use to add this profile as a friend.
     pub friend_code: String,
-    /// Avatar tint (hex). An uploaded image can come later.
+    /// Which mascot they picked (a seed the client draws from). Empty falls
+    /// back to the monogram.
+    pub avatar: String,
+    /// The colour the mascot sits on, and the monogram's background.
     pub avatar_color: String,
     /// False until they've picked a name and avatar; the app shows the
     /// setup screen instead of the board while it is.

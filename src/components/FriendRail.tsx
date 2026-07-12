@@ -4,7 +4,7 @@ import { friendActivity, listFriends } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { Friend } from "../lib/bindings/Friend";
 import type { FriendActivity } from "../lib/bindings/FriendActivity";
-import { avatarInitial } from "../lib/profile";
+import Avatar from "./Avatar";
 
 const STORAGE_KEY = "friend-rail";
 
@@ -99,12 +99,12 @@ function FriendRail() {
 							const now = latest.get(friend.id);
 							return (
 								<li key={friend.id} className="friend-rail-item">
-									<span
-										className="avatar friend-rail-avatar"
-										style={{ background: friend.avatarColor }}
-									>
-										<span>{avatarInitial(friend.displayName)}</span>
-									</span>
+									<Avatar
+										name={friend.displayName}
+										avatar={friend.avatar}
+										color={friend.avatarColor}
+										className="friend-rail-avatar"
+									/>
 									<div className="friend-rail-meta">
 										<span className="friend-rail-name">
 											{friend.displayName}

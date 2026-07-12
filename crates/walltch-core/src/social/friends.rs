@@ -11,6 +11,7 @@ use thiserror::Error;
 pub struct Friend {
     pub id: String,
     pub display_name: String,
+    pub avatar: String,
     pub avatar_color: String,
     pub friend_code: String,
 }
@@ -22,6 +23,7 @@ pub struct Friend {
 pub struct FriendActivity {
     pub friend_id: String,
     pub friend_name: String,
+    pub avatar: String,
     pub avatar_color: String,
     /// The thing being watched ("Breaking Bad").
     pub title: String,

@@ -104,7 +104,7 @@ pub async fn update_profile(
     update: ProfileUpdate,
 ) -> Result<Profile, String> {
     social
-        .update_profile(&update.display_name, &update.avatar_color)
+        .update_profile(&update.display_name, &update.avatar, &update.avatar_color)
         .await
         .map_err(|e| e.to_string())
 }

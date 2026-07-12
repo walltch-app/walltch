@@ -1,5 +1,6 @@
 import { Check, Copy, UserPlus, X } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
+import Avatar from "../../components/Avatar";
 import {
 	acceptFriend,
 	addFriend,
@@ -11,13 +12,9 @@ import {
 	removeFriend,
 	updateProfile,
 } from "../../lib/api";
+import { AVATAR_SEEDS, avatarUri } from "../../lib/avatar";
 import type { Friend } from "../../lib/bindings/Friend";
-import {
-	AVATAR_COLORS,
-	avatarInitial,
-	formatFriendCode,
-	useProfile,
-} from "../../lib/profile";
+import { AVATAR_COLORS, formatFriendCode, useProfile } from "../../lib/profile";
 import AuthCard from "./AuthCard";
 import "./profile.css";
 
@@ -26,7 +23,7 @@ function ProfilePage() {
 	const [watching, setWatching] = useState(0);
 	const [saved, setSaved] = useState(0);
 	const [name, setName] = useState("");
-	const [color, setColor] = useState(AVATAR_COLORS[0]);
+	const [pick, setPick] = useState(0);
 	const [flash, setFlash] = useState(false);
 
 	const [friends, setFriends] = useState<Friend[]>([]);
@@ -68,19 +65,22 @@ function ProfilePage() {
 	useEffect(() => {
 		if (profile) {
 			setName(profile.displayName);
-			setColor(profile.avatarColor);
+			const index = AVATAR_SEEDS.indexOf(profile.avatar);
+			setPick(index === -1 ? 0 : index);
 		}
 	}, [profile]);
 
 	if (!profile) return <div className="page" />;
 
-	const dirty =
-		name.trim() !== profile.displayName || color !== profile.avatarColor;
+	const seed = AVATAR_SEEDS[pick];
+	const color = AVATAR_COLORS[pick % AVATAR_COLORS.length];
+	const dirty = name.trim() !== profile.displayName || seed !== profile.avatar;
 
 	async function save() {
 		try {
 			const next = await updateProfile({
 				displayName: name,
+				avatar: seed,
 				avatarColor: color,
 			});
 			setProfile(next);
@@ -144,9 +144,12 @@ function ProfilePage() {
 	return (
 		<div className="page">
 			<div className="profile-head">
-				<div className="avatar avatar-big" style={{ background: color }}>
-					<span>{avatarInitial(name || profile.displayName)}</span>
-				</div>
+				<Avatar
+					name={name || profile.displayName}
+					avatar={seed}
+					color={color}
+					className="avatar-big"
+				/>
 				<div>
 					<h1 className="page-title">{profile.displayName}</h1>
 					<p className="page-subtitle">
@@ -183,20 +186,23 @@ function ProfilePage() {
 				</label>
 
 				<div className="profile-field">
-					<span className="profile-field-label">Avatar color</span>
-					<div className="swatch-row">
-						{AVATAR_COLORS.map((c) => (
-							<button
-								key={c}
-								type="button"
-								className={c === color ? "swatch swatch-on" : "swatch"}
-								style={{ background: c }}
-								onClick={() => setColor(c)}
-								aria-label={`Avatar color ${c}`}
-							>
-								{c === color && <Check aria-hidden />}
-							</button>
-						))}
+					<span className="profile-field-label">Mascot</span>
+					<div className="mascot-grid">
+						{AVATAR_SEEDS.map((s, i) => {
+							const c = AVATAR_COLORS[i % AVATAR_COLORS.length];
+							return (
+								<button
+									key={s}
+									type="button"
+									className={i === pick ? "mascot on" : "mascot"}
+									style={{ background: c }}
+									onClick={() => setPick(i)}
+									aria-label={`Mascot ${i + 1}`}
+								>
+									<img src={avatarUri(s, c)} alt="" />
+								</button>
+							);
+						})}
 					</div>
 				</div>
 
@@ -243,12 +249,12 @@ function ProfilePage() {
 						<ul className="friend-list">
 							{requests.map((req) => (
 								<li key={req.id} className="friend-row">
-									<span
-										className="avatar friend-avatar"
-										style={{ background: req.avatarColor }}
-									>
-										<span>{avatarInitial(req.displayName)}</span>
-									</span>
+									<Avatar
+										name={req.displayName}
+										avatar={req.avatar}
+										color={req.avatarColor}
+										className="friend-avatar"
+									/>
 									<div className="friend-meta">
 										<span className="friend-name">{req.displayName}</span>
 										<span className="friend-code-sub">wants to be friends</span>
@@ -278,12 +284,12 @@ function ProfilePage() {
 				<ul className="friend-list">
 					{friends.map((friend) => (
 						<li key={friend.id} className="friend-row">
-							<span
-								className="avatar friend-avatar"
-								style={{ background: friend.avatarColor }}
-							>
-								<span>{avatarInitial(friend.displayName)}</span>
-							</span>
+							<Avatar
+								name={friend.displayName}
+								avatar={friend.avatar}
+								color={friend.avatarColor}
+								className="friend-avatar"
+							/>
 							<div className="friend-meta">
 								<span className="friend-name">{friend.displayName}</span>
 								<span className="friend-code-sub">

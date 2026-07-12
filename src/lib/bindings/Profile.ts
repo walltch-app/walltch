@@ -13,7 +13,12 @@ id: string, displayName: string,
  */
 friendCode: string, 
 /**
- * Avatar tint (hex). An uploaded image can come later.
+ * Which mascot they picked (a seed the client draws from). Empty falls
+ * back to the monogram.
+ */
+avatar: string, 
+/**
+ * The colour the mascot sits on, and the monogram's background.
  */
 avatarColor: string, 
 /**

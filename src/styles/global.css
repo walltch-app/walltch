@@ -140,6 +140,18 @@ a.avatar:hover {
 	line-height: 1;
 }
 
+/* A picked mascot fills the circle; the monogram is the fallback. */
+.avatar {
+	overflow: hidden;
+}
+
+.avatar img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
 .win-controls {
 	display: flex;
 	gap: 2px;
@@ -758,6 +770,48 @@ a.avatar:hover {
 	flex: 1;
 	height: 1px;
 	background: var(--line);
+}
+
+/* The mascot picker: a Netflix-ish grid of characters, on the setup screen
+   and again in profile settings. */
+.mascot-grid {
+	display: grid;
+	grid-template-columns: repeat(6, 1fr);
+	gap: 12px;
+	width: 100%;
+	max-width: 380px;
+}
+
+.mascot {
+	aspect-ratio: 1;
+	padding: 0;
+	border: 0;
+	border-radius: 16px;
+	overflow: hidden;
+	cursor: pointer;
+	opacity: 0.55;
+	transition:
+		transform 130ms ease,
+		opacity 130ms ease,
+		box-shadow 130ms ease;
+}
+
+.mascot img {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.mascot:hover {
+	opacity: 1;
+	transform: scale(1.08);
+}
+
+.mascot.on {
+	opacity: 1;
+	box-shadow:
+		0 0 0 2px var(--bg),
+		0 0 0 4px #fff;
 }
 
 .empty {

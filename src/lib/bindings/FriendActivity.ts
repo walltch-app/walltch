@@ -3,7 +3,7 @@
 /**
  * One entry in the activity feed — what a friend is watching.
  */
-export type FriendActivity = { friendId: string, friendName: string, avatarColor: string, 
+export type FriendActivity = { friendId: string, friendName: string, avatar: string, avatarColor: string, 
 /**
  * The thing being watched ("Breaking Bad").
  */

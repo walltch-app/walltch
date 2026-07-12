@@ -98,7 +98,7 @@ impl SupabaseSocial {
             .rest(
                 Method::GET,
                 &format!(
-                    "profiles?id=eq.{me}&select=id,display_name,avatar_color,friend_code,onboarded"
+                    "profiles?id=eq.{me}&select=id,display_name,avatar,avatar_color,friend_code,onboarded"
                 ),
                 None,
                 None,
@@ -116,6 +116,7 @@ impl SupabaseSocial {
     pub async fn update_profile(
         &self,
         display_name: &str,
+        avatar: &str,
         avatar_color: &str,
     ) -> Result<Profile, SocialError> {
         let me = self.me().await?;
@@ -125,6 +126,7 @@ impl SupabaseSocial {
                 &format!("profiles?id=eq.{me}"),
                 Some(json!({
                     "display_name": clean_display_name(display_name),
+                    "avatar": avatar,
                     "avatar_color": avatar_color,
                     "onboarded": true,
                 })),
@@ -146,7 +148,7 @@ impl SupabaseSocial {
             .rest(
                 Method::GET,
                 &format!(
-                    "friendships?user_id=eq.{me}&status=eq.accepted&select=other:profiles!friend_id(id,display_name,avatar_color,friend_code)"
+                    "friendships?user_id=eq.{me}&status=eq.accepted&select=other:profiles!friend_id(id,display_name,avatar,avatar_color,friend_code)"
                 ),
                 None,
                 None,
@@ -156,7 +158,7 @@ impl SupabaseSocial {
             .rest(
                 Method::GET,
                 &format!(
-                    "friendships?friend_id=eq.{me}&status=eq.accepted&select=other:profiles!user_id(id,display_name,avatar_color,friend_code)"
+                    "friendships?friend_id=eq.{me}&status=eq.accepted&select=other:profiles!user_id(id,display_name,avatar,avatar_color,friend_code)"
                 ),
                 None,
                 None,
@@ -172,7 +174,7 @@ impl SupabaseSocial {
             .rest(
                 Method::GET,
                 &format!(
-                    "friendships?friend_id=eq.{me}&status=eq.pending&select=other:profiles!user_id(id,display_name,avatar_color,friend_code)"
+                    "friendships?friend_id=eq.{me}&status=eq.pending&select=other:profiles!user_id(id,display_name,avatar,avatar_color,friend_code)"
                 ),
                 None,
                 None,
@@ -194,7 +196,7 @@ impl SupabaseSocial {
             .rest(
                 Method::GET,
                 &format!(
-                    "profiles?friend_code=eq.{code}&select=id,display_name,avatar_color,friend_code"
+                    "profiles?friend_code=eq.{code}&select=id,display_name,avatar,avatar_color,friend_code"
                 ),
                 None,
                 None,
@@ -297,7 +299,7 @@ impl SupabaseSocial {
             .rest(
                 Method::GET,
                 &format!(
-                    "activity?user_id=neq.{me}&select=user_id,meta_id,content_type,title,subtitle,poster,updated_at,friend:profiles!user_id(display_name,avatar_color)&order=updated_at.desc"
+                    "activity?user_id=neq.{me}&select=user_id,meta_id,content_type,title,subtitle,poster,updated_at,friend:profiles!user_id(display_name,avatar,avatar_color)&order=updated_at.desc"
                 ),
                 None,
                 None,
@@ -316,6 +318,7 @@ fn profile_from_row(id: &str, row: &Value) -> Profile {
         id: id.to_owned(),
         display_name: row["display_name"].as_str().unwrap_or("You").to_owned(),
         friend_code: row["friend_code"].as_str().unwrap_or_default().to_owned(),
+        avatar: row["avatar"].as_str().unwrap_or_default().to_owned(),
         avatar_color: row["avatar_color"].as_str().unwrap_or("#d0588a").to_owned(),
         onboarded: row["onboarded"].as_bool().unwrap_or(false),
     }
@@ -336,6 +339,7 @@ fn friend_from_row(row: &Value) -> Option<Friend> {
     Some(Friend {
         id,
         display_name: row["display_name"].as_str().unwrap_or("Friend").to_owned(),
+        avatar: row["avatar"].as_str().unwrap_or_default().to_owned(),
         avatar_color: row["avatar_color"].as_str().unwrap_or("#0353f2").to_owned(),
         friend_code: row["friend_code"].as_str().unwrap_or_default().to_owned(),
     })
@@ -348,6 +352,10 @@ fn activity_from_row(row: &Value) -> Option<FriendActivity> {
         friend_name: row["friend"]["display_name"]
             .as_str()
             .unwrap_or("Friend")
+            .to_owned(),
+        avatar: row["friend"]["avatar"]
+            .as_str()
+            .unwrap_or_default()
             .to_owned(),
         avatar_color: row["friend"]["avatar_color"]
             .as_str()

@@ -169,6 +169,7 @@ pub struct ProgressUpdate {
 #[serde(rename_all = "camelCase")]
 pub struct ProfileUpdate {
     pub display_name: String,
+    pub avatar: String,
     pub avatar_color: String,
 }
 
