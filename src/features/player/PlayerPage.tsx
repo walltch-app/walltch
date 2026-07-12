@@ -42,6 +42,7 @@ import {
 	getSettings,
 	getSkipSegments,
 	getStreams,
+	getStreamTiers,
 	getSubtitles,
 	getVideoProgress,
 	resolveStream,
@@ -77,6 +78,20 @@ export type PlayerLocationState = {
 const SAVE_EVERY_SECS = 10;
 const MIN_POSITION_SECS = 10;
 const CONTROLS_IDLE_MS = 2600;
+/** Give up on a release that hasn't produced a single frame in this long. */
+const START_STALL_MS = 40_000;
+/** ...and on one that stops feeding us mid-episode for this long. */
+const MID_STALL_MS = 45_000;
+/** How many releases to work through before admitting defeat. */
+const MAX_STREAM_ATTEMPTS = 4;
+
+/** What makes two streams the same stream: the file they point at. */
+function streamIdentity(stream: AddonStream): string {
+	if ("infoHash" in stream) return `${stream.infoHash}:${stream.fileIdx ?? ""}`;
+	if ("url" in stream) return stream.url;
+	if ("ytId" in stream) return `yt:${stream.ytId}`;
+	return stream.externalUrl;
+}
 
 const OBSERVED_PROPERTIES = [
 	["pause", "flag"],
@@ -584,6 +599,7 @@ function MpvPlayer({
 	autoSkipIntro,
 	swarm,
 	onError,
+	onStall,
 	onNext,
 	nextVideo,
 	nextLoading,
@@ -597,6 +613,8 @@ function MpvPlayer({
 	/** Peers and speed while a torrent stalls; null for HTTP streams. */
 	swarm: string | null;
 	onError: (message: string) => void;
+	/** Called once when this release stops being worth waiting for. */
+	onStall?: (reason: string) => void;
 	onNext?: () => void;
 	/** The episode the up-next card is offering, when there is one. */
 	nextVideo?: Video | null;
@@ -659,6 +677,40 @@ function MpvPlayer({
 			})
 			.catch(() => {});
 	}, [context]);
+
+	// A release whose swarm can't feed us looks exactly like a slow one, until
+	// enough time passes. Watch for both shapes of that — never opened, or
+	// stopped feeding mid-episode — and tell the page, which finds another.
+	const openedAtRef = useRef(Date.now());
+	const bufferingSinceRef = useRef<number | null>(null);
+	const stalledRef = useRef(false);
+	useEffect(() => {
+		openedAtRef.current = Date.now();
+		bufferingSinceRef.current = null;
+		stalledRef.current = false;
+	}, []);
+	useEffect(() => {
+		bufferingSinceRef.current = buffering ? Date.now() : null;
+	}, [buffering]);
+	useEffect(() => {
+		if (!onStall) return;
+		const timer = window.setInterval(() => {
+			if (stalledRef.current) return;
+			const now = Date.now();
+			const neverOpened =
+				duration === 0 && now - openedAtRef.current > START_STALL_MS;
+			const stoppedFeeding =
+				bufferingSinceRef.current !== null &&
+				now - bufferingSinceRef.current > MID_STALL_MS;
+			if (neverOpened || stoppedFeeding) {
+				stalledRef.current = true;
+				onStall(
+					neverOpened ? "That release never started" : "The stream stalled",
+				);
+			}
+		}, 4000);
+		return () => window.clearInterval(timer);
+	}, [duration, onStall]);
 
 	// The lookup is keyed on the episode and its runtime, so it waits for mpv
 	// to report a duration. Nothing found is the normal case; stay quiet.
@@ -1363,7 +1415,15 @@ function PlayerPage() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const state = (location.state ?? null) as PlayerLocationState | null;
-	const swarm = useSwarm(state?.stream);
+
+	// The stream being played isn't necessarily the one we were sent here with:
+	// a dead swarm gets replaced by the next best release of the same thing.
+	const [stream, setStream] = useState<AddonStream | null>(
+		state?.stream ?? null,
+	);
+	const [notice, setNotice] = useState<string | null>(null);
+	const triedRef = useRef<Set<string>>(new Set());
+	const swarm = useSwarm(stream ?? undefined);
 
 	const [playUrl, setPlayUrl] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -1374,6 +1434,53 @@ function PlayerPage() {
 	const [nextLoading, setNextLoading] = useState(false);
 
 	const context = state?.context ?? null;
+
+	// A new episode arrives as fresh navigation state; start over from the
+	// stream it came with.
+	useEffect(() => {
+		setStream(state?.stream ?? null);
+		setNotice(null);
+		triedRef.current = new Set(
+			state?.stream ? [streamIdentity(state.stream)] : [],
+		);
+	}, [state]);
+
+	/** Swap in the next best release of the same video. Resolves when one was
+	 * found and started; rejects when there's nothing left to try, which is the
+	 * only case worth showing an error for. */
+	const fallback = useCallback(
+		async (reason: string) => {
+			if (!context || triedRef.current.size > MAX_STREAM_ATTEMPTS) {
+				throw new Error("nothing left to try");
+			}
+			const tiers = await getStreamTiers(context.contentType, context.videoId);
+			// Same order the detail page shows: the quality you asked for first,
+			// best release of each tier ahead of its alternatives.
+			const ordered = [...tiers]
+				.sort((a, b) => Number(b.preferred) - Number(a.preferred))
+				.flatMap((tier) => [tier.best, ...tier.alternatives]);
+			const next = ordered.find(
+				(candidate) => !triedRef.current.has(streamIdentity(candidate)),
+			);
+			if (!next) throw new Error("nothing left to try");
+
+			triedRef.current.add(streamIdentity(next));
+			setNotice(`${reason} — trying another release`);
+			setStream(next);
+		},
+		[context],
+	);
+
+	const onStall = useCallback(
+		(reason: string) => {
+			fallback(reason).catch(() => {
+				setError(
+					"This stream stopped coming through, and the other releases didn't fare better. Try a different quality.",
+				);
+			});
+		},
+		[fallback],
+	);
 
 	// Series only: figure out which episode comes after this one.
 	useEffect(() => {
@@ -1449,22 +1556,27 @@ function PlayerPage() {
 	}, []);
 
 	useEffect(() => {
-		if (!state) return;
+		if (!stream) return;
 		let stale = false;
 		// Reset between episodes so the spinner shows during the switch.
 		setPlayUrl(null);
 		setError(null);
-		resolveStream(state.stream)
+		resolveStream(stream)
 			.then((resolved) => {
 				if (!stale) setPlayUrl(resolved.playUrl);
 			})
 			.catch((e) => {
-				if (!stale) setError(String(e));
+				// A torrent nobody is sharing isn't worth an error screen while
+				// twenty other releases of the same thing are a lookup away.
+				if (stale) return;
+				fallback("That release didn't answer").catch(() => {
+					setError(String(e));
+				});
 			});
 		return () => {
 			stale = true;
 		};
-	}, [state]);
+	}, [stream, fallback]);
 
 	// Opened directly without a stream (e.g. after a reload): nothing to play.
 	useEffect(() => {
@@ -1473,7 +1585,7 @@ function PlayerPage() {
 	if (!state) return null;
 
 	const title = state.title ?? state.stream.name ?? "Now playing";
-	const notWebReady = state.stream.behaviorHints.notWebReady;
+	const notWebReady = stream?.behaviorHints.notWebReady ?? false;
 	const mpvActive = mpvReady === true && playUrl !== null && !error;
 
 	return (
@@ -1516,7 +1628,7 @@ function PlayerPage() {
 						</button>
 						<span className="player-title">{title}</span>
 					</div>
-					<Backdrop context={context} title={title} status={swarm} />
+					<Backdrop context={context} title={title} status={notice ?? swarm} />
 				</>
 			)}
 
@@ -1528,8 +1640,9 @@ function PlayerPage() {
 					context={context}
 					preferredSubtitleLang={playerSettings?.preferredSubtitleLang ?? ""}
 					autoSkipIntro={playerSettings?.autoSkipIntro ?? false}
-					swarm={swarm}
+					swarm={notice ?? swarm}
 					onError={setError}
+					onStall={onStall}
 					onNext={nextVideo ? playNext : undefined}
 					nextVideo={nextVideo}
 					nextLoading={nextLoading}

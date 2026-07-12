@@ -85,8 +85,10 @@ struct EngineState {
 /// and firewalls that special-case it behave.
 const LISTEN_PORTS: std::ops::Range<u16> = 6881..6889;
 
-/// How long to chase a magnet's metadata before calling it dead.
-const METADATA_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45);
+/// How long to chase a magnet's metadata before calling it dead. Short, on
+/// purpose: the player has other releases to try, and trying one is faster
+/// than waiting on a swarm that isn't there.
+const METADATA_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(25);
 
 /// Trackers every magnet gets, on top of whatever the addon supplied. Some
 /// addons hand over nothing but a "dht:" entry, and bootstrapping a swarm
