@@ -81,6 +81,9 @@ struct EngineState {
     http_addr: SocketAddr,
 }
 
+/// How long to chase a magnet's metadata before calling it dead.
+const METADATA_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45);
+
 /// Trackers every magnet gets, on top of whatever the addon supplied. Some
 /// addons hand over nothing but a "dht:" entry, and bootstrapping a swarm
 /// through the DHT alone is what makes a stream sit there for half a minute
@@ -240,9 +243,14 @@ impl TorrentEngine {
             .context("adding torrent")?
             .into_handle()
             .context("torrent came back as list-only")?;
-        handle
-            .wait_until_initialized()
+        // A magnet with no reachable peers never resolves, and waiting on that
+        // forever leaves the player on a spinner with nothing to say. Give up
+        // and let the user pick another stream.
+        tokio::time::timeout(METADATA_TIMEOUT, handle.wait_until_initialized())
             .await
+            .map_err(|_| {
+                anyhow::anyhow!("Couldn't reach anyone sharing this torrent — try another stream.")
+            })?
             .context("resolving torrent metadata")?;
 
         let (idx, file_name) = handle.with_metadata(|metadata| {
