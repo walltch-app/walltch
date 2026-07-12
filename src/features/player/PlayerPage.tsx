@@ -17,6 +17,7 @@ import {
 	Volume2,
 	VolumeX,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import {
 	type PointerEvent as ReactPointerEvent,
 	useCallback,
@@ -133,6 +134,41 @@ function mpvConfig(settings: Settings | null): MpvConfig {
 		);
 	}
 	return { initialOptions, observedProperties: OBSERVED_PROPERTIES };
+}
+
+/** What you look at while a torrent warms up: the thing you're about to
+ * watch, slowly drifting, with the swarm's progress under the title. Fades
+ * away the moment mpv has a frame to show. */
+function Backdrop({
+	context,
+	title,
+	status,
+}: {
+	context: PlayContext | null;
+	title: string;
+	status: string | null;
+}) {
+	const art = context?.background ?? context?.poster ?? null;
+
+	return (
+		<motion.div
+			className="player-backdrop"
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			exit={{ opacity: 0 }}
+			transition={{ duration: 0.45, ease: "easeOut" }}
+		>
+			{art && <img className="player-backdrop-art" src={art} alt="" />}
+			<div className="player-backdrop-scrim" />
+			<div className="player-backdrop-body">
+				<h2>{title}</h2>
+				<div className="player-backdrop-status">
+					<div className="spinner" aria-hidden />
+					<p>{status ?? "Preparing stream…"}</p>
+				</div>
+			</div>
+		</motion.div>
+	);
 }
 
 function episodeLabel(video: Video) {
@@ -626,10 +662,16 @@ function MpvPlayer({
 				<span className="player-title">{title}</span>
 			</div>
 
-			{/* Duration 0 means mpv has the URL but hasn't been able to read the
-			    file's header yet — from the outside that looks identical to a
-			    stall, so treat it as one. */}
-			{(buffering || duration === 0) && (
+			{/* Duration 0 means mpv has the URL but hasn't read the file's header
+			    yet — there's nothing behind the player but black, so keep the
+			    artwork up until there's a frame. Once it's playing, a stall only
+			    needs the spinner; the video is still there underneath. */}
+			<AnimatePresence>
+				{duration === 0 && (
+					<Backdrop context={context} title={title} status={swarm} />
+				)}
+			</AnimatePresence>
+			{buffering && duration > 0 && (
 				<div className="center-status">
 					<div className="spinner" aria-hidden />
 					{swarm && <p className="player-hint">{swarm}</p>}
@@ -1151,14 +1193,7 @@ function PlayerPage() {
 						</button>
 						<span className="player-title">{title}</span>
 					</div>
-					<div className="player-status">
-						<div className="spinner" aria-hidden />
-						<p>Preparing stream…</p>
-						<p className="player-hint">
-							{swarm ??
-								"Torrents need a moment to find peers before playback starts."}
-						</p>
-					</div>
+					<Backdrop context={context} title={title} status={swarm} />
 				</>
 			)}
 
