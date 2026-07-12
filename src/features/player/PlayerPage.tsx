@@ -361,6 +361,64 @@ function NextUpCard({
 	);
 }
 
+/** How long the skip panel stays out before retreating to the edge. */
+const SKIP_VISIBLE_MS = 7000;
+/** The strip of the window that brings it back. */
+const SKIP_HOT_ZONE_PX = 260;
+
+/** Skip intro, as a panel that slides out of the right edge. It shows itself
+ * once, then gets out of the way — and comes back whenever the cursor drifts
+ * to that side of the picture, which is where you'd reach for it anyway. */
+function SkipIntro({ onSkip }: { onSkip: () => void }) {
+	const [shown, setShown] = useState(true);
+	const hideTimer = useRef<number>(0);
+
+	const reveal = useCallback(() => {
+		setShown(true);
+		window.clearTimeout(hideTimer.current);
+		hideTimer.current = window.setTimeout(
+			() => setShown(false),
+			SKIP_VISIBLE_MS,
+		);
+	}, []);
+
+	useEffect(() => {
+		reveal();
+		const onMove = (event: MouseEvent) => {
+			if (event.clientX > window.innerWidth - SKIP_HOT_ZONE_PX) reveal();
+		};
+		window.addEventListener("mousemove", onMove);
+		return () => {
+			window.removeEventListener("mousemove", onMove);
+			window.clearTimeout(hideTimer.current);
+		};
+	}, [reveal]);
+
+	return (
+		<AnimatePresence>
+			{shown && (
+				<motion.button
+					type="button"
+					className="skip-intro"
+					initial={{ x: "100%", opacity: 0 }}
+					animate={{ x: 0, opacity: 1 }}
+					exit={{ x: "100%", opacity: 0 }}
+					transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+					onClick={onSkip}
+				>
+					<span className="skip-intro-chip" aria-hidden>
+						<ChevronsRight />
+					</span>
+					<span className="skip-intro-text">
+						<span className="skip-intro-eyebrow">Opening</span>
+						<span className="skip-intro-label">Skip intro</span>
+					</span>
+				</motion.button>
+			)}
+		</AnimatePresence>
+	);
+}
+
 type FlashKind = "play" | "pause" | "back" | "forward";
 
 /** The big confirmation in the middle of the picture when a transport control
@@ -901,24 +959,7 @@ function MpvPlayer({
 					{swarm && <p className="player-hint">{swarm}</p>}
 				</div>
 			)}
-			<AnimatePresence>
-				{inIntro && intro && (
-					<motion.button
-						type="button"
-						className="skip-intro"
-						initial={{ opacity: 0, y: 12, scale: 0.96 }}
-						animate={{ opacity: 1, y: 0, scale: 1 }}
-						exit={{ opacity: 0, y: 12, scale: 0.96 }}
-						transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-						onClick={() => seekTo(intro.end)}
-					>
-						<span className="skip-intro-chip" aria-hidden>
-							<ChevronsRight />
-						</span>
-						<span className="skip-intro-label">Skip intro</span>
-					</motion.button>
-				)}
-			</AnimatePresence>
+			{inIntro && intro && <SkipIntro onSkip={() => seekTo(intro.end)} />}
 
 			<AnimatePresence>
 				{showNextUp && onNext && (
