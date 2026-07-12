@@ -7,6 +7,7 @@ import {
 	Compass,
 	Download,
 	History,
+	LogOut,
 	Puzzle,
 	Search,
 	Settings,
@@ -14,7 +15,7 @@ import {
 	User,
 	X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	NavLink,
 	Outlet,
@@ -22,10 +23,19 @@ import {
 	useNavigate,
 	useSearchParams,
 } from "react-router";
-import FriendRail from "../components/FriendRail";
-import WindowControls from "../components/WindowControls";
-import { avatarUri } from "../lib/avatar";
-import { avatarInitial, formatFriendCode, useProfile } from "../lib/profile";
+import Avatar from "@/components/Avatar";
+import FriendRail from "@/components/FriendRail";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import WindowControls from "@/components/WindowControls";
+import { useAuth } from "@/lib/auth";
+import { avatarUri } from "@/lib/avatar";
+import { avatarInitial, formatFriendCode, useProfile } from "@/lib/profile";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
 	isActive ? "nav-link active" : "nav-link";
@@ -79,75 +89,66 @@ function TopbarSearch() {
 	);
 }
 
-/** The avatar is the way into the account: it opens a small menu with the
- * pages that belong to you rather than to the catalogue. */
+/** The avatar is the way into the account: it opens a menu with the pages
+ * that belong to you rather than to the catalogue. */
 function UserMenu() {
 	const { profile } = useProfile();
-	const [open, setOpen] = useState(false);
-	const menu = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		if (!open) return;
-		const onDown = (event: MouseEvent) => {
-			if (!menu.current?.contains(event.target as Node)) setOpen(false);
-		};
-		const onKey = (event: KeyboardEvent) => {
-			if (event.key === "Escape") setOpen(false);
-		};
-		document.addEventListener("mousedown", onDown);
-		window.addEventListener("keydown", onKey);
-		return () => {
-			document.removeEventListener("mousedown", onDown);
-			window.removeEventListener("keydown", onKey);
-		};
-	}, [open]);
+	const { signOut } = useAuth();
+	const navigate = useNavigate();
 
 	return (
-		<div className="user-menu" ref={menu}>
-			<button
-				type="button"
-				className="avatar"
-				title="Account"
-				aria-haspopup="menu"
-				aria-expanded={open}
-				onClick={() => setOpen((current) => !current)}
-				style={profile ? { background: profile.avatarColor } : undefined}
-			>
-				{!profile ? (
-					<User aria-hidden />
-				) : profile.avatar ? (
-					<img src={avatarUri(profile.avatar, profile.avatarColor)} alt="" />
-				) : (
-					<span>{avatarInitial(profile.displayName)}</span>
-				)}
-			</button>
-			{open && (
-				<div className="user-menu-panel">
-					{profile && (
-						<div className="user-menu-head">
-							<strong>{profile.displayName}</strong>
-							<span>{formatFriendCode(profile.friendCode)}</span>
-						</div>
-					)}
-					<NavLink
-						to="/profile"
-						className="user-menu-item"
-						onClick={() => setOpen(false)}
-					>
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<button
+					type="button"
+					className="avatar"
+					title="Account"
+					style={profile ? { background: profile.avatarColor } : undefined}
+				>
+					{!profile ? (
 						<User aria-hidden />
-						Profile
-					</NavLink>
-					<NavLink
-						to="/settings"
-						className="user-menu-item"
-						onClick={() => setOpen(false)}
-					>
-						<Settings aria-hidden />
-						Settings
-					</NavLink>
-				</div>
-			)}
-		</div>
+					) : profile.avatar ? (
+						<img src={avatarUri(profile.avatar, profile.avatarColor)} alt="" />
+					) : (
+						<span>{avatarInitial(profile.displayName)}</span>
+					)}
+				</button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" className="min-w-64">
+				{profile && (
+					<div className="flex items-center gap-3 px-2.5 pt-2 pb-3">
+						<Avatar
+							avatar={profile.avatar}
+							color={profile.avatarColor}
+							name={profile.displayName}
+							className="avatar-menu"
+						/>
+						<div className="min-w-0">
+							<div className="truncate font-display text-[1rem] font-semibold">
+								{profile.displayName}
+							</div>
+							<div className="text-xs tracking-[0.08em] text-muted">
+								{formatFriendCode(profile.friendCode)}
+							</div>
+						</div>
+					</div>
+				)}
+				<DropdownMenuSeparator />
+				<DropdownMenuItem onSelect={() => navigate("/profile")}>
+					<User aria-hidden />
+					Profile
+				</DropdownMenuItem>
+				<DropdownMenuItem onSelect={() => navigate("/settings")}>
+					<Settings aria-hidden />
+					Settings
+				</DropdownMenuItem>
+				<DropdownMenuSeparator />
+				<DropdownMenuItem onSelect={() => signOut()}>
+					<LogOut aria-hidden />
+					Sign out
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }
 

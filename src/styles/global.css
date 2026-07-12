@@ -1,3 +1,11 @@
+/* Tailwind without its preflight: the reset below is ours and predates it,
+   and letting preflight in would strip the browser defaults (heading sizes,
+   list markers) that the hand-written CSS still leans on. Utilities and the
+   theme are all we're after. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
 /* Theme tokens. Everything color-related lives here so a future
    user-configurable theme only has to swap this block. */
 :root {
@@ -19,6 +27,24 @@
 	--radius: 12px;
 	--font-display: "Outfit Variable", system-ui, sans-serif;
 	--font-body: "Inter Variable", system-ui, sans-serif;
+}
+
+/* Hand the same tokens to Tailwind, so `bg-surface` or `text-muted` mean
+   exactly what the hand-written CSS means — one palette, two ways to reach
+   it while the UI moves over to utilities. */
+@theme inline {
+	--color-accent: var(--accent);
+	--color-accent-2: var(--accent-2);
+	--color-bg-deep: var(--bg-deep);
+	--color-bg: var(--bg);
+	--color-surface: var(--surface);
+	--color-surface-2: var(--surface-2);
+	--color-line: var(--line);
+	--color-edge: var(--edge);
+	--color-text: var(--text);
+	--color-muted: var(--muted);
+	--font-display: var(--font-display);
+	--font-body: var(--font-body);
 }
 
 * {
@@ -130,76 +156,34 @@ a.avatar:hover {
 	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
-/* The account menu hanging off the topbar avatar — the way to Profile and
-   Settings now that they're off the sidebar. */
-.user-menu {
-	position: relative;
+/* The account card at the top of the avatar menu. */
+.avatar-menu {
+	width: 44px;
+	height: 44px;
+	cursor: default;
 }
 
-.user-menu-panel {
-	position: absolute;
-	top: calc(100% + 10px);
-	right: 0;
-	z-index: 30;
-	min-width: 208px;
-	padding: 6px;
-	border: 1px solid var(--line);
-	border-radius: 14px;
-	background: var(--surface-2);
-	box-shadow: 0 22px 48px rgba(0, 0, 0, 0.5);
-	animation: menu-in 140ms cubic-bezier(0.4, 0, 0.2, 1);
+/* Radix drives the menu's open/closed state; the motion is ours. */
+[data-slot="dropdown-menu-content"] {
+	animation: menu-in 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-slot="dropdown-menu-content"][data-state="closed"] {
+	animation: menu-out 110ms ease-in forwards;
 }
 
 @keyframes menu-in {
 	from {
 		opacity: 0;
-		transform: translateY(-6px);
+		transform: translateY(-6px) scale(0.96);
 	}
 }
 
-.user-menu-head {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	padding: 10px 12px 12px;
-	margin-bottom: 4px;
-	border-bottom: 1px solid var(--line);
-}
-
-.user-menu-head strong {
-	font-size: 0.95rem;
-	font-weight: 600;
-}
-
-.user-menu-head span {
-	color: var(--muted);
-	font-size: 0.78rem;
-	letter-spacing: 0.06em;
-}
-
-.user-menu-item {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	padding: 10px 12px;
-	border-radius: 10px;
-	color: var(--muted);
-	font-size: 0.92rem;
-	font-weight: 500;
-	transition:
-		color 120ms ease,
-		background-color 120ms ease;
-}
-
-.user-menu-item:hover,
-.user-menu-item.active {
-	color: var(--text);
-	background: color-mix(in srgb, var(--accent) 14%, transparent);
-}
-
-.user-menu-item svg {
-	width: 16px;
-	height: 16px;
+@keyframes menu-out {
+	to {
+		opacity: 0;
+		transform: translateY(-4px) scale(0.97);
+	}
 }
 
 .avatar svg {
