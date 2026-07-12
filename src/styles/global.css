@@ -229,7 +229,10 @@ a.avatar:hover {
 	background: var(--line);
 }
 
-/* Borderless rail sitting straight on the canvas, like the mock. */
+/* Borderless rail sitting straight on the canvas, like the mock. Collapsing
+   only animates the width: the padding and every icon stay put, and the
+   labels are clipped by their own link rather than dropped, so nothing
+   inside reflows while the rail is moving. */
 .sidebar {
 	position: relative;
 	display: flex;
@@ -237,13 +240,11 @@ a.avatar:hover {
 	width: 224px;
 	flex-shrink: 0;
 	padding: 10px 8px 6px;
-	transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
+	transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-min {
 	width: 66px;
-	padding-left: 6px;
-	padding-right: 6px;
 }
 
 /* Floating toggle riding the sidebar's edge. */
@@ -318,25 +319,32 @@ a.avatar:hover {
 }
 
 .nav-link {
+	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	padding: 11px 13px;
+	padding: 11px 0;
 	border-radius: 12px;
 	color: var(--muted);
 	font-size: 0.95rem;
 	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
 	transition:
 		color 120ms ease,
 		background-color 120ms ease;
 }
 
-/* The play-triangle from the logo marks where you are. */
+/* The play-triangle from the logo marks where you are. Absolute, so the
+   icons sit at the same offset whether or not the link is active — and the
+   collapsed rail centres them for free. */
 .nav-link::before {
 	content: "";
+	position: absolute;
+	left: 5px;
+	top: 50%;
 	width: 7px;
 	height: 9px;
-	flex-shrink: 0;
+	transform: translateY(-50%);
 	clip-path: polygon(0 0, 100% 50%, 0 100%);
 	background: var(--gradient);
 	opacity: 0;
@@ -361,21 +369,24 @@ a.avatar:hover {
 .nav-link svg {
 	width: 18px;
 	height: 18px;
+	flex-shrink: 0;
+	/* Fixed margins put the icon in the middle of the collapsed rail. */
+	margin: 0 16px;
 }
 
-/* Collapsed rail: icon-only, labels and the triangle drop out. */
+.nav-label {
+	opacity: 1;
+	transition: opacity 160ms ease;
+}
+
+/* Collapsed rail: icon-only. Labels fade rather than disappear, and the
+   triangle goes with them, so the width animation stays smooth. */
 .sidebar-min .nav-label {
-	display: none;
-}
-
-.sidebar-min .nav-link {
-	justify-content: center;
-	gap: 0;
-	padding: 12px 0;
+	opacity: 0;
 }
 
 .sidebar-min .nav-link::before {
-	display: none;
+	opacity: 0;
 }
 
 .content {
