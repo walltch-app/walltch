@@ -60,14 +60,84 @@
 	text-overflow: ellipsis;
 }
 
+/* Both of these sit just above the control bar, on the right, where the eye
+   already goes when a scene ends. */
+.skip-intro {
+	position: absolute;
+	right: 32px;
+	bottom: 116px;
+	z-index: 3;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 11px 16px 11px 20px;
+	border: 1px solid rgba(255, 255, 255, 0.22);
+	border-radius: 999px;
+	background: rgba(8, 10, 15, 0.7);
+	backdrop-filter: blur(10px);
+	color: #fff;
+	font-size: 0.9rem;
+	font-weight: 600;
+	transition:
+		background-color 140ms ease,
+		border-color 140ms ease;
+}
+
+.skip-intro:hover {
+	background: rgba(8, 10, 15, 0.9);
+	border-color: var(--accent);
+}
+
+.skip-intro svg {
+	width: 17px;
+	height: 17px;
+}
+
 .next-up {
 	position: absolute;
 	right: 32px;
-	bottom: 108px;
+	bottom: 116px;
 	z-index: 3;
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 14px 16px 14px 20px;
+	border: 1px solid var(--line);
+	border-radius: 16px;
+	background: rgba(8, 10, 15, 0.78);
+	backdrop-filter: blur(14px);
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
 }
 
-.next-up svg {
+.next-up-text p {
+	color: #fff;
+	font-size: 0.92rem;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.next-up-eyebrow {
+	display: block;
+	margin-bottom: 2px;
+	color: var(--muted);
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.next-up-dismiss {
+	color: var(--muted);
+	font-size: 0.88rem;
+	font-weight: 600;
+	transition: color 120ms ease;
+}
+
+.next-up-dismiss:hover {
+	color: #fff;
+}
+
+.next-up-play svg {
 	width: 16px;
 	height: 16px;
 }

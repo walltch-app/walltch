@@ -5,6 +5,7 @@ import {
 	AudioLines,
 	Captions,
 	Check,
+	ChevronsRight,
 	FolderOpen,
 	Gauge,
 	Maximize,
@@ -85,6 +86,7 @@ const OBSERVED_PROPERTIES = [
 	["speed", "double"],
 	["paused-for-cache", "flag", "none"],
 	["demuxer-cache-time", "double", "none"],
+	["chapter-list", "node", "none"],
 ] as const satisfies MpvObservableProperty[];
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -102,6 +104,35 @@ type MpvTrack = {
 function trackLabel(track: MpvTrack) {
 	const name = track.title ?? `Track ${track.id}`;
 	return track.lang ? `${name} · ${track.lang}` : name;
+}
+
+/** One entry of mpv's chapter-list. Well-made releases mark the opening and
+ * the credits; that's what lets us offer to skip them rather than guess. */
+type MpvChapter = { title?: string | null; time: number };
+
+/** How long before the end the next episode is offered when the file has no
+ * credits chapter to tell us. */
+const ENDING_FALLBACK_SECS = 50;
+const AUTOPLAY_SECS = 10;
+
+const INTRO_TITLE = /\b(intro|opening|op|title sequence|avant|recap)\b/i;
+const CREDITS_TITLE = /\b(credit|credits|ending|outro|ed|end card)\b/i;
+
+/** The stretch of the file a named chapter covers: from its start to whatever
+ * comes next (or the end of the file). */
+function chapterSpan(
+	chapters: MpvChapter[],
+	duration: number,
+	matches: RegExp,
+): { start: number; end: number } | null {
+	const index = chapters.findIndex((chapter) =>
+		matches.test(chapter.title ?? ""),
+	);
+	if (index < 0) return null;
+	const start = chapters[index].time;
+	const end = chapters[index + 1]?.time ?? duration;
+	// A "chapter" of a couple of seconds is a marker, not a section.
+	return end - start > 5 ? { start, end } : null;
 }
 
 function mpvConfig(settings: Settings | null): MpvConfig {
@@ -244,6 +275,73 @@ function useProgressSaver(context: PlayContext | null) {
 	}, [context]);
 
 	return { positionRef, durationRef, lastSavedRef, persist };
+}
+
+/** The offer to roll on, once the credits start. It plays the next episode by
+ * itself if you do nothing — that's the point of it — but says how long you
+ * have, and stops counting the moment you say no. */
+function NextUpCard({
+	onPlay,
+	onDismiss,
+	loading,
+}: {
+	onPlay: () => void;
+	onDismiss: () => void;
+	loading: boolean;
+}) {
+	const [left, setLeft] = useState(AUTOPLAY_SECS);
+	const playRef = useRef(onPlay);
+	playRef.current = onPlay;
+
+	useEffect(() => {
+		const timer = window.setInterval(() => {
+			setLeft((seconds) => {
+				if (seconds <= 1) {
+					window.clearInterval(timer);
+					playRef.current();
+					return 0;
+				}
+				return seconds - 1;
+			});
+		}, 1000);
+		return () => window.clearInterval(timer);
+	}, []);
+
+	return (
+		<motion.div
+			className="next-up"
+			initial={{ opacity: 0, y: 16 }}
+			animate={{ opacity: 1, y: 0 }}
+			exit={{ opacity: 0, y: 16 }}
+			transition={{ duration: 0.22, ease: "easeOut" }}
+		>
+			<div className="next-up-text">
+				<span className="next-up-eyebrow">Up next</span>
+				<p>
+					{loading
+						? "Finding a stream…"
+						: `Next episode in ${left} ${left === 1 ? "second" : "seconds"}`}
+				</p>
+			</div>
+			<button
+				type="button"
+				className="next-up-dismiss"
+				onClick={onDismiss}
+				disabled={loading}
+			>
+				Not now
+			</button>
+			<button
+				type="button"
+				className="btn next-up-play"
+				onClick={onPlay}
+				disabled={loading}
+			>
+				<SkipForward aria-hidden />
+				Play now
+			</button>
+		</motion.div>
+	);
 }
 
 type FlashKind = "play" | "pause" | "back" | "forward";
@@ -419,6 +517,9 @@ function MpvPlayer({
 	const [buffered, setBuffered] = useState(0);
 	const [buffering, setBuffering] = useState(false);
 	const [tracks, setTracks] = useState<MpvTrack[]>([]);
+	const [chapters, setChapters] = useState<MpvChapter[]>([]);
+	// Dismissing the up-next card should keep it dismissed for this episode.
+	const [nextDismissed, setNextDismissed] = useState(false);
 	const [openMenu, setOpenMenu] = useState<"subs" | "audio" | "speed" | null>(
 		null,
 	);
@@ -522,6 +623,11 @@ function MpvPlayer({
 							case "track-list":
 								setTracks(((data as MpvTrack[] | null) ?? []).filter(Boolean));
 								break;
+							case "chapter-list":
+								setChapters(
+									((data as MpvChapter[] | null) ?? []).filter(Boolean),
+								);
+								break;
 							case "volume":
 								setVolume(data);
 								break;
@@ -573,6 +679,23 @@ function MpvPlayer({
 		},
 		[showFlash],
 	);
+
+	// Chapters are the only honest way to know where an opening ends, so the
+	// offer to skip it only appears on files whose maker marked it.
+	const intro = chapterSpan(chapters, duration, INTRO_TITLE);
+	const credits = chapterSpan(chapters, duration, CREDITS_TITLE);
+	const inIntro =
+		intro !== null && timePos >= intro.start && timePos < intro.end - 1;
+
+	// The next episode is offered once the credits roll — or, on a file with no
+	// chapters, in the last minute.
+	const endingAt = credits?.start ?? duration - ENDING_FALLBACK_SECS;
+	const showNextUp =
+		Boolean(onNext) &&
+		!nextDismissed &&
+		duration > 0 &&
+		timePos >= endingAt &&
+		timePos < duration - 1;
 
 	const seekTo = useCallback(
 		(position: number) => {
@@ -758,17 +881,32 @@ function MpvPlayer({
 					{swarm && <p className="player-hint">{swarm}</p>}
 				</div>
 			)}
-			{onNext && duration > 0 && duration - timePos < 45 && (
-				<button
-					type="button"
-					className="btn next-up"
-					onClick={onNext}
-					disabled={nextLoading}
-				>
-					<SkipForward aria-hidden />
-					{nextLoading ? "Loading…" : "Next episode"}
-				</button>
-			)}
+			<AnimatePresence>
+				{inIntro && intro && (
+					<motion.button
+						type="button"
+						className="skip-intro"
+						initial={{ opacity: 0, y: 10 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: 10 }}
+						transition={{ duration: 0.18, ease: "easeOut" }}
+						onClick={() => seekTo(intro.end)}
+					>
+						Skip intro
+						<ChevronsRight aria-hidden />
+					</motion.button>
+				)}
+			</AnimatePresence>
+
+			<AnimatePresence>
+				{showNextUp && onNext && (
+					<NextUpCard
+						onPlay={onNext}
+						onDismiss={() => setNextDismissed(true)}
+						loading={Boolean(nextLoading)}
+					/>
+				)}
+			</AnimatePresence>
 			<Flash flash={flash} onDone={() => setFlash(null)} />
 
 			<div className="chrome-bar">
