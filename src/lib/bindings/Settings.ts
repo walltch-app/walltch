@@ -49,4 +49,8 @@ subtitleBackground: boolean,
 /**
  * Which quality to open with. Empty means "whatever's best".
  */
-preferredQuality: string, };
+preferredQuality: string, 
+/**
+ * Jump the opening as soon as it starts, without asking.
+ */
+autoSkipIntro: boolean, };

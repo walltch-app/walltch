@@ -163,6 +163,8 @@ pub struct Settings {
     pub subtitle_background: bool,
     /// Which quality to open with. Empty means "whatever's best".
     pub preferred_quality: String,
+    /// Jump the opening as soon as it starts, without asking.
+    pub auto_skip_intro: bool,
 }
 
 impl Settings {
@@ -192,6 +194,7 @@ impl Default for Settings {
             subtitle_color: "#ffffff".to_owned(),
             subtitle_background: false,
             preferred_quality: String::new(),
+            auto_skip_intro: false,
         }
     }
 }

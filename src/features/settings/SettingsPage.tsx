@@ -103,6 +103,26 @@ function SettingsPage() {
 							quality on the detail page, and this one leads. If a title isn't
 							served in it, the next one down is used.
 						</p>
+						<label className="settings-toggle">
+							<input
+								type="checkbox"
+								checked={settings.autoSkipIntro}
+								onChange={(e) =>
+									update({
+										...settings,
+										autoSkipIntro: e.currentTarget.checked,
+									})
+								}
+							/>
+							<div>
+								<span>Skip openings automatically</span>
+								<p className="settings-hint">
+									Jumps the opening as soon as it starts, when the file marks it
+									or the episode is in the timestamp database. Off, you get a
+									button instead.
+								</p>
+							</div>
+						</label>
 						<div className="size-chips">
 							{QUALITIES.map(([id, label]) => (
 								<button

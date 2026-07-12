@@ -19,6 +19,7 @@ import type { ProfileUpdate } from "./bindings/ProfileUpdate";
 import type { ProgressUpdate } from "./bindings/ProgressUpdate";
 import type { ResolvedStream } from "./bindings/ResolvedStream";
 import type { Settings } from "./bindings/Settings";
+import type { SkipSegment } from "./bindings/SkipSegment";
 import type { StreamSource } from "./bindings/StreamSource";
 import type { StreamTier } from "./bindings/StreamTier";
 import type { TorrentProgress } from "./bindings/TorrentProgress";
@@ -61,6 +62,14 @@ export function getStreams(
 	id: string,
 ): Promise<AddonStream[]> {
 	return invoke("get_streams", { contentType, id });
+}
+
+/** Where this episode's opening and ending are. Empty for most things. */
+export function getSkipSegments(
+	videoId: string,
+	durationSecs: number,
+): Promise<SkipSegment[]> {
+	return invoke("get_skip_segments", { videoId, durationSecs });
 }
 
 /** null when the stream isn't a torrent, or the engine hasn't seen it. */

@@ -6,12 +6,13 @@ use std::sync::Arc;
 use tauri::State;
 use walltch_core::addon::{MetaDetail, MetaPreview, StreamSource};
 use walltch_core::library::{LibraryItem, WatchProgress};
+use walltch_core::skip::SkipSegment;
 use walltch_core::social::{Friend, FriendActivity, Profile};
 
 use crate::adapters::social_supabase::ActivityInput;
 use crate::adapters::supabase::AuthStatus;
 use crate::adapters::torrent::{DownloadEntry, EngineConfig, ResolvedStream, TorrentProgress};
-use crate::adapters::{SupabaseAuth, SupabaseSocial, TorrentEngine};
+use crate::adapters::{SkipProvider, SupabaseAuth, SupabaseSocial, TorrentEngine};
 use crate::state::{
     AddonStream, AddonSubtitle, AppState, CacheMode, CatalogDescriptor, InstalledAddon,
     ProfileUpdate, ProgressUpdate, Settings, StreamTier, WatchlistToggle,
@@ -349,6 +350,17 @@ pub async fn resolve_stream(
             Err("This stream only plays on an external site.".to_owned())
         }
     }
+}
+
+/// Where this episode's opening and ending are, when a database knows. Empty
+/// is the normal answer for most things, and never an error.
+#[tauri::command]
+pub async fn get_skip_segments(
+    skip: State<'_, SkipProvider>,
+    video_id: String,
+    duration_secs: f64,
+) -> Result<Vec<SkipSegment>, String> {
+    Ok(skip.segments(&video_id, duration_secs).await)
 }
 
 /// How the torrent behind what's playing is doing. The player polls this

@@ -41,6 +41,7 @@ pub fn run() {
             app.manage(auth);
             app.manage(social);
             app.manage(adapters::TorrentEngine::new(data_dir.join("torrents")));
+            app.manage(adapters::SkipProvider::new());
             // A crash can leave temp-mode data behind; sweep it on startup too.
             clear_temp_cache(app.handle());
             Ok(())
@@ -57,6 +58,7 @@ pub fn run() {
             commands::get_subtitles,
             commands::resolve_stream,
             commands::torrent_progress,
+            commands::get_skip_segments,
             commands::save_progress,
             commands::list_continue_watching,
             commands::get_video_progress,

@@ -40,6 +40,7 @@ import {
 import {
 	getMeta,
 	getSettings,
+	getSkipSegments,
 	getStreams,
 	getSubtitles,
 	getVideoProgress,
@@ -51,6 +52,7 @@ import {
 import type { AddonStream } from "../../lib/bindings/AddonStream";
 import type { AddonSubtitle } from "../../lib/bindings/AddonSubtitle";
 import type { Settings } from "../../lib/bindings/Settings";
+import type { SkipSegment } from "../../lib/bindings/SkipSegment";
 import type { TorrentProgress } from "../../lib/bindings/TorrentProgress";
 import type { Video } from "../../lib/bindings/Video";
 import { langAliases, langMatches } from "../../lib/lang";
@@ -118,6 +120,15 @@ const AUTOPLAY_SECS = 10;
 
 const INTRO_TITLE = /\b(intro|opening|op|title sequence|avant|recap)\b/i;
 const CREDITS_TITLE = /\b(credit|credits|ending|outro|ed|end card)\b/i;
+
+/** The same shape, from a looked-up segment rather than the file's chapters. */
+function spanFromSegments(
+	segments: SkipSegment[],
+	kind: SkipSegment["kind"],
+): { start: number; end: number } | null {
+	const found = segments.find((segment) => segment.kind === kind);
+	return found ? { start: found.startSecs, end: found.endSecs } : null;
+}
 
 /** The stretch of the file a named chapter covers: from its start to whatever
  * comes next (or the end of the file). */
@@ -570,6 +581,7 @@ function MpvPlayer({
 	title,
 	context,
 	preferredSubtitleLang,
+	autoSkipIntro,
 	swarm,
 	onError,
 	onNext,
@@ -580,6 +592,8 @@ function MpvPlayer({
 	title: string;
 	context: PlayContext | null;
 	preferredSubtitleLang: string;
+	/** Jump the opening without asking, when the user asked for that. */
+	autoSkipIntro: boolean;
 	/** Peers and speed while a torrent stalls; null for HTTP streams. */
 	swarm: string | null;
 	onError: (message: string) => void;
@@ -596,6 +610,7 @@ function MpvPlayer({
 	const [buffering, setBuffering] = useState(false);
 	const [tracks, setTracks] = useState<MpvTrack[]>([]);
 	const [chapters, setChapters] = useState<MpvChapter[]>([]);
+	const [segments, setSegments] = useState<SkipSegment[]>([]);
 	// Dismissing the up-next card should keep it dismissed for this episode.
 	const [nextDismissed, setNextDismissed] = useState(false);
 	const [openMenu, setOpenMenu] = useState<"subs" | "audio" | "speed" | null>(
@@ -644,6 +659,22 @@ function MpvPlayer({
 			})
 			.catch(() => {});
 	}, [context]);
+
+	// The lookup is keyed on the episode and its runtime, so it waits for mpv
+	// to report a duration. Nothing found is the normal case; stay quiet.
+	useEffect(() => {
+		setSegments([]);
+		if (!context || duration <= 0) return;
+		let stale = false;
+		getSkipSegments(context.videoId, duration)
+			.then((found) => {
+				if (!stale) setSegments(found);
+			})
+			.catch(() => {});
+		return () => {
+			stale = true;
+		};
+	}, [context, duration]);
 
 	useEffect(() => {
 		let active = true;
@@ -758,10 +789,14 @@ function MpvPlayer({
 		[showFlash],
 	);
 
-	// Chapters are the only honest way to know where an opening ends, so the
-	// offer to skip it only appears on files whose maker marked it.
-	const intro = chapterSpan(chapters, duration, INTRO_TITLE);
-	const credits = chapterSpan(chapters, duration, CREDITS_TITLE);
+	// The file's own chapters are the most trustworthy answer; a timestamp
+	// database fills in for the (many) releases that carry none.
+	const intro =
+		chapterSpan(chapters, duration, INTRO_TITLE) ??
+		spanFromSegments(segments, "intro");
+	const credits =
+		chapterSpan(chapters, duration, CREDITS_TITLE) ??
+		spanFromSegments(segments, "credits");
 	const inIntro =
 		intro !== null && timePos >= intro.start && timePos < intro.end - 1;
 
@@ -784,6 +819,15 @@ function MpvPlayer({
 		},
 		[positionRef],
 	);
+
+	// With auto-skip on, the opening is jumped once per episode — once, so
+	// seeking back into it deliberately doesn't fight you.
+	const autoSkippedRef = useRef(false);
+	useEffect(() => {
+		if (!autoSkipIntro || !inIntro || !intro || autoSkippedRef.current) return;
+		autoSkippedRef.current = true;
+		seekTo(intro.end);
+	}, [autoSkipIntro, inIntro, intro, seekTo]);
 
 	const toggleMute = useCallback(() => {
 		command("cycle", ["mute"]).catch(() => {});
@@ -1483,6 +1527,7 @@ function PlayerPage() {
 					title={title}
 					context={context}
 					preferredSubtitleLang={playerSettings?.preferredSubtitleLang ?? ""}
+					autoSkipIntro={playerSettings?.autoSkipIntro ?? false}
 					swarm={swarm}
 					onError={setError}
 					onNext={nextVideo ? playNext : undefined}
