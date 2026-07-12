@@ -14,7 +14,7 @@ import {
 	User,
 	X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	NavLink,
 	Outlet,
@@ -25,7 +25,7 @@ import {
 import FriendRail from "../components/FriendRail";
 import WindowControls from "../components/WindowControls";
 import { avatarUri } from "../lib/avatar";
-import { avatarInitial, useProfile } from "../lib/profile";
+import { avatarInitial, formatFriendCode, useProfile } from "../lib/profile";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
 	isActive ? "nav-link active" : "nav-link";
@@ -79,8 +79,79 @@ function TopbarSearch() {
 	);
 }
 
-function Layout() {
+/** The avatar is the way into the account: it opens a small menu with the
+ * pages that belong to you rather than to the catalogue. */
+function UserMenu() {
 	const { profile } = useProfile();
+	const [open, setOpen] = useState(false);
+	const menu = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!open) return;
+		const onDown = (event: MouseEvent) => {
+			if (!menu.current?.contains(event.target as Node)) setOpen(false);
+		};
+		const onKey = (event: KeyboardEvent) => {
+			if (event.key === "Escape") setOpen(false);
+		};
+		document.addEventListener("mousedown", onDown);
+		window.addEventListener("keydown", onKey);
+		return () => {
+			document.removeEventListener("mousedown", onDown);
+			window.removeEventListener("keydown", onKey);
+		};
+	}, [open]);
+
+	return (
+		<div className="user-menu" ref={menu}>
+			<button
+				type="button"
+				className="avatar"
+				title="Account"
+				aria-haspopup="menu"
+				aria-expanded={open}
+				onClick={() => setOpen((current) => !current)}
+				style={profile ? { background: profile.avatarColor } : undefined}
+			>
+				{!profile ? (
+					<User aria-hidden />
+				) : profile.avatar ? (
+					<img src={avatarUri(profile.avatar, profile.avatarColor)} alt="" />
+				) : (
+					<span>{avatarInitial(profile.displayName)}</span>
+				)}
+			</button>
+			{open && (
+				<div className="user-menu-panel">
+					{profile && (
+						<div className="user-menu-head">
+							<strong>{profile.displayName}</strong>
+							<span>{formatFriendCode(profile.friendCode)}</span>
+						</div>
+					)}
+					<NavLink
+						to="/profile"
+						className="user-menu-item"
+						onClick={() => setOpen(false)}
+					>
+						<User aria-hidden />
+						Profile
+					</NavLink>
+					<NavLink
+						to="/settings"
+						className="user-menu-item"
+						onClick={() => setOpen(false)}
+					>
+						<Settings aria-hidden />
+						Settings
+					</NavLink>
+				</div>
+			)}
+		</div>
+	);
+}
+
+function Layout() {
 	const [collapsed, setCollapsed] = useState(
 		() => localStorage.getItem("sidebar") === "collapsed",
 	);
@@ -118,20 +189,7 @@ function Layout() {
 				</div>
 				<TopbarSearch />
 				<div className="topbar-spacer" data-tauri-drag-region />
-				<NavLink
-					to="/profile"
-					className="avatar"
-					title="Profile"
-					style={profile ? { background: profile.avatarColor } : undefined}
-				>
-					{!profile ? (
-						<User aria-hidden />
-					) : profile.avatar ? (
-						<img src={avatarUri(profile.avatar, profile.avatarColor)} alt="" />
-					) : (
-						<span>{avatarInitial(profile.displayName)}</span>
-					)}
-				</NavLink>
+				<UserMenu />
 				<WindowControls />
 			</header>
 			<div className="shell-body">
@@ -180,17 +238,6 @@ function Layout() {
 						<NavLink to="/addons" className={linkClass} title="Addons">
 							<Puzzle aria-hidden />
 							<span className="nav-label">Addons</span>
-						</NavLink>
-					</nav>
-					<div className="nav-divider" />
-					<nav aria-label="Secondary">
-						<NavLink to="/settings" className={linkClass} title="Settings">
-							<Settings aria-hidden />
-							<span className="nav-label">Settings</span>
-						</NavLink>
-						<NavLink to="/profile" className={linkClass} title="Profile">
-							<User aria-hidden />
-							<span className="nav-label">Profile</span>
 						</NavLink>
 					</nav>
 					<div className="spacer" />

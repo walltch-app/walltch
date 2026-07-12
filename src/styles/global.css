@@ -113,6 +113,7 @@ textarea {
 	width: 34px;
 	height: 34px;
 	flex-shrink: 0;
+	padding: 0;
 	border: 1px solid var(--line);
 	border-radius: 50%;
 	background: var(--gradient);
@@ -123,9 +124,82 @@ textarea {
 		box-shadow 130ms ease;
 }
 
+.user-menu > .avatar:hover,
 a.avatar:hover {
 	transform: translateY(-1px);
 	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+/* The account menu hanging off the topbar avatar — the way to Profile and
+   Settings now that they're off the sidebar. */
+.user-menu {
+	position: relative;
+}
+
+.user-menu-panel {
+	position: absolute;
+	top: calc(100% + 10px);
+	right: 0;
+	z-index: 30;
+	min-width: 208px;
+	padding: 6px;
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	background: var(--surface-2);
+	box-shadow: 0 22px 48px rgba(0, 0, 0, 0.5);
+	animation: menu-in 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes menu-in {
+	from {
+		opacity: 0;
+		transform: translateY(-6px);
+	}
+}
+
+.user-menu-head {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 10px 12px 12px;
+	margin-bottom: 4px;
+	border-bottom: 1px solid var(--line);
+}
+
+.user-menu-head strong {
+	font-size: 0.95rem;
+	font-weight: 600;
+}
+
+.user-menu-head span {
+	color: var(--muted);
+	font-size: 0.78rem;
+	letter-spacing: 0.06em;
+}
+
+.user-menu-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	color: var(--muted);
+	font-size: 0.92rem;
+	font-weight: 500;
+	transition:
+		color 120ms ease,
+		background-color 120ms ease;
+}
+
+.user-menu-item:hover,
+.user-menu-item.active {
+	color: var(--text);
+	background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.user-menu-item svg {
+	width: 16px;
+	height: 16px;
 }
 
 .avatar svg {
@@ -221,12 +295,6 @@ a.avatar:hover {
 	height: 100%;
 	object-fit: contain;
 	object-position: left bottom;
-}
-
-.nav-divider {
-	height: 1px;
-	margin: 12px 12px;
-	background: var(--line);
 }
 
 /* Borderless rail sitting straight on the canvas, like the mock. Collapsing
