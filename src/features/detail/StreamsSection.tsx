@@ -1,4 +1,5 @@
 import { Check, HardDrive, Play, TriangleAlert, Users } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatedBackground } from "@/components/ui/animated-background";
@@ -125,31 +126,29 @@ function OptionRow({
 	onPlay: () => void;
 }) {
 	return (
-		<li>
-			<button
-				type="button"
-				onClick={onPlay}
-				title={stream.facts.release ?? undefined}
-				className="group flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-colors hover:bg-white/5"
-			>
-				<span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/6 text-muted transition-colors group-hover:bg-(image:--gradient) group-hover:text-white">
-					<Play className="size-3.5 translate-x-px fill-current" aria-hidden />
-				</span>
-				<div className="min-w-0 flex-1">
-					<div className="flex flex-wrap items-center gap-1.5">
-						{tagsOf(stream).map((tag) => (
-							<Tag key={tag}>{tag}</Tag>
-						))}
-					</div>
-					<p className="mt-1.5 truncate text-[0.72rem] text-muted/60">
-						{stream.facts.release ?? stream.name}
-					</p>
+		<button
+			type="button"
+			onClick={onPlay}
+			title={stream.facts.release ?? undefined}
+			className="group flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-colors hover:bg-white/5"
+		>
+			<span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/6 text-muted transition-colors group-hover:bg-(image:--gradient) group-hover:text-white">
+				<Play className="size-3.5 translate-x-px fill-current" aria-hidden />
+			</span>
+			<div className="min-w-0 flex-1">
+				<div className="flex flex-wrap items-center gap-1.5">
+					{tagsOf(stream).map((tag) => (
+						<Tag key={tag}>{tag}</Tag>
+					))}
 				</div>
-				<div className="shrink-0">
-					<Stats stream={stream} />
-				</div>
-			</button>
-		</li>
+				<p className="mt-1.5 truncate text-[0.72rem] text-muted/60">
+					{stream.facts.release ?? stream.name}
+				</p>
+			</div>
+			<div className="shrink-0">
+				<Stats stream={stream} />
+			</div>
+		</button>
 	);
 }
 
@@ -247,28 +246,42 @@ function StreamsSection({
 						</AnimatedBackground>
 					</div>
 
-					<BestCard
-						stream={tier.best}
-						label={tier.label}
-						onPlay={() => play(tier.best)}
-					/>
+					{/* Switching quality replaces everything below the tabs, so it
+					    fades and settles rather than snapping. */}
+					<AnimatePresence mode="wait">
+						<motion.div
+							key={tier.quality}
+							className="flex flex-col gap-4"
+							initial={{ opacity: 0, y: 5 }}
+							animate={{ opacity: 1, y: 0 }}
+							exit={{ opacity: 0 }}
+							transition={{ duration: 0.12, ease: "easeOut" }}
+						>
+							<BestCard
+								stream={tier.best}
+								label={tier.label}
+								onPlay={() => play(tier.best)}
+							/>
 
-					{tier.alternatives.length > 0 && (
-						<div>
-							<p className="mb-2 px-1 text-xs font-semibold tracking-wide text-muted uppercase">
-								Other {tier.label} releases
-							</p>
-							<ul className="max-h-96 overflow-y-auto rounded-2xl border border-line bg-surface/40 p-1.5">
-								{tier.alternatives.map((stream) => (
-									<OptionRow
-										key={streamKey(stream)}
-										stream={stream}
-										onPlay={() => play(stream)}
-									/>
-								))}
-							</ul>
-						</div>
-					)}
+							{tier.alternatives.length > 0 && (
+								<div>
+									<p className="mb-2 px-1 text-xs font-semibold tracking-wide text-muted uppercase">
+										Other {tier.label} releases
+									</p>
+									<ul className="max-h-96 overflow-y-auto rounded-2xl border border-line bg-surface/40 p-1.5">
+										{tier.alternatives.map((stream) => (
+											<li key={streamKey(stream)}>
+												<OptionRow
+													stream={stream}
+													onPlay={() => play(stream)}
+												/>
+											</li>
+										))}
+									</ul>
+								</div>
+							)}
+						</motion.div>
+					</AnimatePresence>
 				</div>
 			)}
 		</section>
