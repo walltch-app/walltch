@@ -10,7 +10,7 @@ use walltch_core::social::{Friend, FriendActivity, Profile};
 
 use crate::adapters::social_supabase::ActivityInput;
 use crate::adapters::supabase::AuthStatus;
-use crate::adapters::torrent::{DownloadEntry, EngineConfig, ResolvedStream};
+use crate::adapters::torrent::{DownloadEntry, EngineConfig, ResolvedStream, TorrentProgress};
 use crate::adapters::{SupabaseAuth, SupabaseSocial, TorrentEngine};
 use crate::state::{
     AddonStream, AddonSubtitle, AppState, CacheMode, CatalogDescriptor, InstalledAddon,
@@ -349,6 +349,16 @@ pub async fn resolve_stream(
             Err("This stream only plays on an external site.".to_owned())
         }
     }
+}
+
+/// How the torrent behind what's playing is doing. The player polls this
+/// while it waits, so the wait can say why it's waiting.
+#[tauri::command]
+pub fn torrent_progress(
+    engine: State<'_, TorrentEngine>,
+    info_hash: String,
+) -> Option<TorrentProgress> {
+    engine.progress(&info_hash)
 }
 
 #[tauri::command]

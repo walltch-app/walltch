@@ -21,6 +21,7 @@ import type { ResolvedStream } from "./bindings/ResolvedStream";
 import type { Settings } from "./bindings/Settings";
 import type { StreamSource } from "./bindings/StreamSource";
 import type { StreamTier } from "./bindings/StreamTier";
+import type { TorrentProgress } from "./bindings/TorrentProgress";
 import type { WatchlistToggle } from "./bindings/WatchlistToggle";
 import type { WatchProgress } from "./bindings/WatchProgress";
 
@@ -60,6 +61,13 @@ export function getStreams(
 	id: string,
 ): Promise<AddonStream[]> {
 	return invoke("get_streams", { contentType, id });
+}
+
+/** null when the stream isn't a torrent, or the engine hasn't seen it. */
+export function torrentProgress(
+	infoHash: string,
+): Promise<TorrentProgress | null> {
+	return invoke("torrent_progress", { infoHash });
 }
 
 export function getStreamTiers(

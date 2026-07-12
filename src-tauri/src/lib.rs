@@ -56,6 +56,7 @@ pub fn run() {
             commands::get_stream_tiers,
             commands::get_subtitles,
             commands::resolve_stream,
+            commands::torrent_progress,
             commands::save_progress,
             commands::list_continue_watching,
             commands::get_video_progress,

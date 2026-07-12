@@ -1,12 +1,14 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use anyhow::Context;
 use librqbit::http_api::{HttpApi, HttpApiOptions};
 use librqbit::limits::LimitsConfig;
 use librqbit::storage::StorageFactoryExt;
-use librqbit::{AddTorrent, AddTorrentOptions, Api, Session, SessionOptions};
+use librqbit::{AddTorrent, AddTorrentOptions, Api, Session, SessionOptions, TorrentStatsState};
+use librqbit_core::Id20;
 
 use super::ram_storage::RamStorageFactory;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
@@ -21,6 +23,20 @@ pub struct ResolvedStream {
     /// Directly playable URL (remote for http streams, local for torrents).
     pub play_url: String,
     pub file_name: Option<String>,
+}
+
+/// What a torrent is doing right now, so the player can say something more
+/// useful than "loading" while it waits for the first pieces.
+#[derive(Debug, Clone, Default, Serialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct TorrentProgress {
+    /// Still resolving the magnet — no metadata, no peers, nothing to show.
+    pub initializing: bool,
+    pub peers: u32,
+    pub download_mbps: f64,
+    pub downloaded_bytes: u64,
+    pub total_bytes: u64,
 }
 
 /// One entry in the download cache, as shown on the downloads page.
@@ -65,15 +81,37 @@ struct EngineState {
     http_addr: SocketAddr,
 }
 
+/// Trackers every magnet gets, on top of whatever the addon supplied. Some
+/// addons hand over nothing but a "dht:" entry, and bootstrapping a swarm
+/// through the DHT alone is what makes a stream sit there for half a minute
+/// before the first byte arrives. These are the large public ones.
+const DEFAULT_TRACKERS: [&str; 8] = [
+    "udp://tracker.opentrackr.org:1337/announce",
+    "udp://open.tracker.cl:1337/announce",
+    "udp://open.demonii.com:1337/announce",
+    "udp://tracker.torrent.eu.org:451/announce",
+    "udp://exodus.desync.com:6969/announce",
+    "udp://tracker.openbittorrent.com:6969/announce",
+    "udp://explodie.org:6969/announce",
+    "udp://tracker1.bt.moack.co.kr:80/announce",
+];
+
 fn build_magnet(info_hash: &str, sources: &[String]) -> String {
     let mut magnet = format!("magnet:?xt=urn:btih:{info_hash}");
-    for source in sources {
+    let mut trackers: Vec<&str> = sources
+        .iter()
         // Torrentio-style source entries: "tracker:udp://..." and "dht:<hash>".
         // DHT is already on in the session, so only trackers are useful here.
-        if let Some(tracker) = source.strip_prefix("tracker:") {
-            magnet.push_str("&tr=");
-            magnet.push_str(&utf8_percent_encode(tracker, NON_ALPHANUMERIC).to_string());
+        .filter_map(|source| source.strip_prefix("tracker:"))
+        .collect();
+    for tracker in DEFAULT_TRACKERS {
+        if !trackers.contains(&tracker) {
+            trackers.push(tracker);
         }
+    }
+    for tracker in trackers {
+        magnet.push_str("&tr=");
+        magnet.push_str(&utf8_percent_encode(tracker, NON_ALPHANUMERIC).to_string());
     }
     magnet
 }
@@ -233,6 +271,25 @@ impl TorrentEngine {
                 idx
             ),
             file_name,
+        })
+    }
+
+    /// How the torrent behind the current stream is doing. None once the
+    /// session is gone or the torrent was never added (a plain HTTP stream).
+    pub fn progress(&self, info_hash: &str) -> Option<TorrentProgress> {
+        let session = &self.state.get()?.session;
+        let id = Id20::from_str(info_hash).ok()?;
+        let handle = session.get(id.into())?;
+        let stats = handle.stats();
+        let live = stats.live.as_ref();
+        Some(TorrentProgress {
+            initializing: matches!(stats.state, TorrentStatsState::Initializing),
+            peers: live
+                .map(|live| live.snapshot.peer_stats.live as u32)
+                .unwrap_or(0),
+            download_mbps: live.map(|live| live.download_speed.mbps).unwrap_or(0.0),
+            downloaded_bytes: stats.progress_bytes,
+            total_bytes: stats.total_bytes,
         })
     }
 }

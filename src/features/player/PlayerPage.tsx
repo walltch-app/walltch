@@ -43,10 +43,12 @@ import {
 	resolveStream,
 	saveProgress,
 	setActivity,
+	torrentProgress,
 } from "../../lib/api";
 import type { AddonStream } from "../../lib/bindings/AddonStream";
 import type { AddonSubtitle } from "../../lib/bindings/AddonSubtitle";
 import type { Settings } from "../../lib/bindings/Settings";
+import type { TorrentProgress } from "../../lib/bindings/TorrentProgress";
 import type { Video } from "../../lib/bindings/Video";
 import { langAliases, langMatches } from "../../lib/lang";
 import "./player.css";
@@ -286,6 +288,7 @@ function MpvPlayer({
 	title,
 	context,
 	preferredSubtitleLang,
+	swarm,
 	onError,
 	onNext,
 	nextLoading,
@@ -294,6 +297,8 @@ function MpvPlayer({
 	title: string;
 	context: PlayContext | null;
 	preferredSubtitleLang: string;
+	/** Peers and speed while a torrent stalls; null for HTTP streams. */
+	swarm: string | null;
 	onError: (message: string) => void;
 	onNext?: () => void;
 	nextLoading?: boolean;
@@ -614,6 +619,7 @@ function MpvPlayer({
 			{buffering && (
 				<div className="center-status">
 					<div className="spinner" aria-hidden />
+					{swarm && <p className="player-hint">{swarm}</p>}
 				</div>
 			)}
 			{onNext && duration > 0 && duration - timePos < 45 && (
@@ -941,10 +947,45 @@ function HtmlVideoPlayer({
 	);
 }
 
+/** What the torrent behind this stream is doing, in a line: how many peers we
+ * found and how fast they're feeding us. Nothing for a plain HTTP stream. */
+function useSwarm(stream: AddonStream | undefined) {
+	const infoHash = stream && "infoHash" in stream ? stream.infoHash : null;
+	const [progress, setProgress] = useState<TorrentProgress | null>(null);
+
+	useEffect(() => {
+		if (!infoHash) return;
+		let active = true;
+		const poll = () => {
+			torrentProgress(infoHash)
+				.then((value) => {
+					if (active) setProgress(value);
+				})
+				.catch(() => {});
+		};
+		poll();
+		const timer = setInterval(poll, 1000);
+		return () => {
+			active = false;
+			clearInterval(timer);
+		};
+	}, [infoHash]);
+
+	if (!progress) return null;
+	if (progress.initializing) return "Looking for the torrent…";
+	if (progress.peers === 0) return "Connecting to peers…";
+	const speed =
+		progress.downloadMbps >= 1
+			? `${progress.downloadMbps.toFixed(1)} MB/s`
+			: `${Math.round(progress.downloadMbps * 1000)} KB/s`;
+	return `${progress.peers} ${progress.peers === 1 ? "peer" : "peers"} · ${speed}`;
+}
+
 function PlayerPage() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const state = (location.state ?? null) as PlayerLocationState | null;
+	const swarm = useSwarm(state?.stream);
 
 	const [playUrl, setPlayUrl] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -1101,7 +1142,8 @@ function PlayerPage() {
 						<div className="spinner" aria-hidden />
 						<p>Preparing stream…</p>
 						<p className="player-hint">
-							Torrents need a moment to find peers before playback starts.
+							{swarm ??
+								"Torrents need a moment to find peers before playback starts."}
 						</p>
 					</div>
 				</>
@@ -1114,6 +1156,7 @@ function PlayerPage() {
 					title={title}
 					context={context}
 					preferredSubtitleLang={playerSettings?.preferredSubtitleLang ?? ""}
+					swarm={swarm}
 					onError={setError}
 					onNext={nextVideo ? playNext : undefined}
 					nextLoading={nextLoading}
