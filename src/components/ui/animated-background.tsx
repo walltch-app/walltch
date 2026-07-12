@@ -91,7 +91,10 @@ export function AnimatedBackground({
 						/>
 					)}
 				</AnimatePresence>
-				<div className="z-10">{child.props.children}</div>
+				{/* Positioned, so it stacks above the highlight whatever the
+				    item's display happens to be; full width, so a row can lay
+				    itself out across the item rather than hug its text. */}
+				<div className="relative z-10 w-full">{child.props.children}</div>
 			</>,
 		);
 	});

@@ -118,35 +118,44 @@ function BestCard({
 	);
 }
 
+/** A row in the list under the card. The `data-id` is what AnimatedBackground
+ * keys the travelling hover highlight on, so it has to reach the button. */
 function OptionRow({
 	stream,
 	onPlay,
+	...rest
 }: {
 	stream: RankedStream;
 	onPlay: () => void;
+	"data-id": string;
 }) {
 	return (
 		<button
+			{...rest}
 			type="button"
 			onClick={onPlay}
 			title={stream.facts.release ?? undefined}
-			className="group flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-colors hover:bg-white/5"
+			// The highlight wraps our content in a div of its own, so the row
+			// lays itself out one level in.
+			className="group w-full rounded-xl px-3 py-3 text-left"
 		>
-			<span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/6 text-muted transition-colors group-hover:bg-(image:--gradient) group-hover:text-white">
-				<Play className="size-3.5 translate-x-px fill-current" aria-hidden />
-			</span>
-			<div className="min-w-0 flex-1">
-				<div className="flex flex-wrap items-center gap-1.5">
-					{tagsOf(stream).map((tag) => (
-						<Tag key={tag}>{tag}</Tag>
-					))}
+			<div className="flex items-center gap-4">
+				<span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/6 text-muted transition-colors group-hover:bg-(image:--gradient) group-hover:text-white">
+					<Play className="size-3.5 translate-x-px fill-current" aria-hidden />
+				</span>
+				<div className="min-w-0 flex-1">
+					<div className="flex flex-wrap items-center gap-1.5">
+						{tagsOf(stream).map((tag) => (
+							<Tag key={tag}>{tag}</Tag>
+						))}
+					</div>
+					<p className="mt-1.5 truncate text-[0.72rem] text-muted/60">
+						{stream.facts.release ?? stream.name}
+					</p>
 				</div>
-				<p className="mt-1.5 truncate text-[0.72rem] text-muted/60">
-					{stream.facts.release ?? stream.name}
-				</p>
-			</div>
-			<div className="shrink-0">
-				<Stats stream={stream} />
+				<div className="shrink-0">
+					<Stats stream={stream} />
+				</div>
 			</div>
 		</button>
 	);
@@ -268,16 +277,26 @@ function StreamsSection({
 									<p className="mb-2 px-1 text-xs font-semibold tracking-wide text-muted uppercase">
 										Other {tier.label} releases
 									</p>
-									<ul className="max-h-96 overflow-y-auto rounded-2xl border border-line bg-surface/40 p-1.5">
-										{tier.alternatives.map((stream) => (
-											<li key={streamKey(stream)}>
+									<div className="flex max-h-96 flex-col overflow-y-auto rounded-2xl border border-line bg-surface/40 p-1.5">
+										<AnimatedBackground
+											enableHover
+											className="rounded-xl bg-white/6"
+											transition={{
+												type: "spring",
+												bounce: 0,
+												duration: 0.25,
+											}}
+										>
+											{tier.alternatives.map((stream) => (
 												<OptionRow
+													key={streamKey(stream)}
+													data-id={streamKey(stream)}
 													stream={stream}
 													onPlay={() => play(stream)}
 												/>
-											</li>
-										))}
-									</ul>
+											))}
+										</AnimatedBackground>
+									</div>
 								</div>
 							)}
 						</motion.div>
