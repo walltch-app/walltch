@@ -60,86 +60,192 @@
 	text-overflow: ellipsis;
 }
 
-/* Both of these sit just above the control bar, on the right, where the eye
-   already goes when a scene ends. */
+/* Both of these sit above the control bar on the right, where the eye already
+   goes when a scene ends. */
+
+/* Not a button that says "skip" — a button that empties. It fills as the
+   opening plays, so its state is the answer to "how long is this?". */
 .skip-intro {
 	position: absolute;
 	right: 32px;
-	bottom: 116px;
+	bottom: 124px;
 	z-index: 3;
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	padding: 11px 16px 11px 20px;
-	border: 1px solid rgba(255, 255, 255, 0.22);
+	overflow: hidden;
+	padding: 13px 22px;
 	border-radius: 999px;
-	background: rgba(8, 10, 15, 0.7);
-	backdrop-filter: blur(10px);
+	background: rgba(10, 12, 18, 0.6);
+	backdrop-filter: blur(14px);
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+		0 14px 40px rgba(0, 0, 0, 0.45);
 	color: #fff;
-	font-size: 0.9rem;
-	font-weight: 600;
 	transition:
-		background-color 140ms ease,
-		border-color 140ms ease;
+		transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+		box-shadow 180ms ease;
 }
 
 .skip-intro:hover {
-	background: rgba(8, 10, 15, 0.9);
-	border-color: var(--accent);
+	transform: translateY(-2px);
+	box-shadow:
+		inset 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent),
+		0 18px 46px color-mix(in srgb, var(--accent) 22%, rgba(0, 0, 0, 0.5));
 }
 
-.skip-intro svg {
+.skip-intro-fill {
+	position: absolute;
+	inset: 0;
+	transform-origin: left;
+	background: var(--gradient);
+	opacity: 0.28;
+	transition: transform 260ms linear;
+}
+
+.skip-intro:hover .skip-intro-fill {
+	opacity: 0.45;
+}
+
+.skip-intro-label {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	font-family: var(--font-display);
+	font-size: 0.92rem;
+	font-weight: 650;
+	letter-spacing: 0.01em;
+}
+
+.skip-intro-label svg {
 	width: 17px;
 	height: 17px;
+	transition: transform 180ms ease;
 }
 
+.skip-intro:hover .skip-intro-label svg {
+	transform: translateX(3px);
+}
+
+/* The next episode, laid out like a card and not a sentence: what you're
+   getting, then the one action, with the countdown as a line that empties. */
 .next-up {
 	position: absolute;
 	right: 32px;
-	bottom: 116px;
+	bottom: 124px;
 	z-index: 3;
-	display: flex;
-	align-items: center;
-	gap: 16px;
-	padding: 14px 16px 14px 20px;
-	border: 1px solid var(--line);
-	border-radius: 16px;
-	background: rgba(8, 10, 15, 0.78);
-	backdrop-filter: blur(14px);
-	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+	overflow: hidden;
+	width: 336px;
+	padding: 16px 16px 18px;
+	border-radius: 20px;
+	background: rgba(10, 12, 18, 0.72);
+	backdrop-filter: blur(20px);
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+		0 26px 60px rgba(0, 0, 0, 0.6);
 }
 
-.next-up-text p {
-	color: #fff;
-	font-size: 0.92rem;
-	font-weight: 500;
-	white-space: nowrap;
+.next-up-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12px;
 }
 
 .next-up-eyebrow {
-	display: block;
-	margin-bottom: 2px;
-	color: var(--muted);
-	font-size: 0.68rem;
+	color: rgba(255, 255, 255, 0.5);
+	font-size: 0.66rem;
 	font-weight: 700;
-	letter-spacing: 0.12em;
+	letter-spacing: 0.16em;
 	text-transform: uppercase;
 }
 
 .next-up-dismiss {
-	color: var(--muted);
-	font-size: 0.88rem;
-	font-weight: 600;
-	transition: color 120ms ease;
+	display: flex;
+	padding: 4px;
+	border-radius: 8px;
+	color: rgba(255, 255, 255, 0.45);
+	transition:
+		color 120ms ease,
+		background-color 120ms ease;
 }
 
 .next-up-dismiss:hover {
 	color: #fff;
+	background: rgba(255, 255, 255, 0.1);
+}
+
+.next-up-dismiss svg {
+	width: 15px;
+	height: 15px;
+}
+
+.next-up-body {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+
+.next-up-thumb {
+	width: 96px;
+	height: 54px;
+	flex-shrink: 0;
+	object-fit: cover;
+	border-radius: 10px;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.next-up-meta {
+	min-width: 0;
+}
+
+.next-up-code {
+	display: block;
+	margin-bottom: 3px;
+	color: var(--accent-2);
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+}
+
+.next-up-title {
+	color: #fff;
+	font-family: var(--font-display);
+	font-size: 1rem;
+	font-weight: 650;
+	line-height: 1.3;
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.next-up-play {
+	width: 100%;
+	justify-content: center;
+	font-variant-numeric: tabular-nums;
 }
 
 .next-up-play svg {
-	width: 16px;
-	height: 16px;
+	width: 15px;
+	height: 15px;
+	fill: currentColor;
+}
+
+.next-up-timer {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 3px;
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.next-up-timer span {
+	display: block;
+	height: 100%;
+	transform-origin: left;
+	background: var(--gradient);
+	transition: transform 1s linear;
 }
 
 .center-status {

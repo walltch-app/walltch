@@ -17,6 +17,7 @@ import {
 	SkipForward,
 	Volume2,
 	VolumeX,
+	X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -277,14 +278,16 @@ function useProgressSaver(context: PlayContext | null) {
 	return { positionRef, durationRef, lastSavedRef, persist };
 }
 
-/** The offer to roll on, once the credits start. It plays the next episode by
- * itself if you do nothing — that's the point of it — but says how long you
- * have, and stops counting the moment you say no. */
+/** The offer to roll on, once the credits start: the episode you're getting,
+ * and a bar that runs out. It plays by itself when the bar empties — that's
+ * the point of it — and "Not now" stops the clock for good. */
 function NextUpCard({
+	next,
 	onPlay,
 	onDismiss,
 	loading,
 }: {
+	next: Video | null;
 	onPlay: () => void;
 	onDismiss: () => void;
 	loading: boolean;
@@ -307,39 +310,53 @@ function NextUpCard({
 		return () => window.clearInterval(timer);
 	}, []);
 
+	const remaining = Math.max(0, left / AUTOPLAY_SECS);
+
 	return (
 		<motion.div
 			className="next-up"
-			initial={{ opacity: 0, y: 16 }}
-			animate={{ opacity: 1, y: 0 }}
-			exit={{ opacity: 0, y: 16 }}
-			transition={{ duration: 0.22, ease: "easeOut" }}
+			initial={{ opacity: 0, y: 20, scale: 0.97 }}
+			animate={{ opacity: 1, y: 0, scale: 1 }}
+			exit={{ opacity: 0, y: 20, scale: 0.97 }}
+			transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
 		>
-			<div className="next-up-text">
+			<div className="next-up-head">
 				<span className="next-up-eyebrow">Up next</span>
-				<p>
-					{loading
-						? "Finding a stream…"
-						: `Next episode in ${left} ${left === 1 ? "second" : "seconds"}`}
-				</p>
+				<button
+					type="button"
+					className="next-up-dismiss"
+					onClick={onDismiss}
+					aria-label="Dismiss"
+				>
+					<X aria-hidden />
+				</button>
 			</div>
-			<button
-				type="button"
-				className="next-up-dismiss"
-				onClick={onDismiss}
-				disabled={loading}
-			>
-				Not now
-			</button>
+
+			<div className="next-up-body">
+				{next?.thumbnail && (
+					<img className="next-up-thumb" src={next.thumbnail} alt="" />
+				)}
+				<div className="next-up-meta">
+					{next && <span className="next-up-code">{episodeLabel(next)}</span>}
+					<p className="next-up-title">{next?.title ?? "Next episode"}</p>
+				</div>
+			</div>
+
 			<button
 				type="button"
 				className="btn next-up-play"
 				onClick={onPlay}
 				disabled={loading}
 			>
-				<SkipForward aria-hidden />
-				Play now
+				<Play aria-hidden />
+				{loading ? "Finding a stream…" : `Play now · ${left}s`}
 			</button>
+
+			{/* The countdown, as something running out rather than a number to
+			    read: when the line empties, the next episode starts. */}
+			<div className="next-up-timer" aria-hidden>
+				<span style={{ transform: `scaleX(${remaining})` }} />
+			</div>
 		</motion.div>
 	);
 }
@@ -498,6 +515,7 @@ function MpvPlayer({
 	swarm,
 	onError,
 	onNext,
+	nextVideo,
 	nextLoading,
 }: {
 	url: string;
@@ -508,6 +526,8 @@ function MpvPlayer({
 	swarm: string | null;
 	onError: (message: string) => void;
 	onNext?: () => void;
+	/** The episode the up-next card is offering, when there is one. */
+	nextVideo?: Video | null;
 	nextLoading?: boolean;
 }) {
 	const navigate = useNavigate();
@@ -886,14 +906,31 @@ function MpvPlayer({
 					<motion.button
 						type="button"
 						className="skip-intro"
-						initial={{ opacity: 0, y: 10 }}
-						animate={{ opacity: 1, y: 0 }}
-						exit={{ opacity: 0, y: 10 }}
-						transition={{ duration: 0.18, ease: "easeOut" }}
+						initial={{ opacity: 0, y: 12, scale: 0.96 }}
+						animate={{ opacity: 1, y: 0, scale: 1 }}
+						exit={{ opacity: 0, y: 12, scale: 0.96 }}
+						transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
 						onClick={() => seekTo(intro.end)}
 					>
-						Skip intro
-						<ChevronsRight aria-hidden />
+						{/* The button fills as the opening plays: when it's full, the
+						    intro is over and the button leaves on its own. */}
+						<span
+							className="skip-intro-fill"
+							style={{
+								transform: `scaleX(${Math.min(
+									1,
+									Math.max(
+										0,
+										(timePos - intro.start) / (intro.end - intro.start),
+									),
+								)})`,
+							}}
+							aria-hidden
+						/>
+						<span className="skip-intro-label">
+							Skip intro
+							<ChevronsRight aria-hidden />
+						</span>
 					</motion.button>
 				)}
 			</AnimatePresence>
@@ -901,6 +938,7 @@ function MpvPlayer({
 			<AnimatePresence>
 				{showNextUp && onNext && (
 					<NextUpCard
+						next={nextVideo ?? null}
 						onPlay={onNext}
 						onDismiss={() => setNextDismissed(true)}
 						loading={Boolean(nextLoading)}
@@ -1422,6 +1460,7 @@ function PlayerPage() {
 					swarm={swarm}
 					onError={setError}
 					onNext={nextVideo ? playNext : undefined}
+					nextVideo={nextVideo}
 					nextLoading={nextLoading}
 				/>
 			)}
