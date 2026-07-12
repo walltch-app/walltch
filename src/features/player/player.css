@@ -63,66 +63,71 @@
 /* Both of these sit above the control bar on the right, where the eye already
    goes when a scene ends. */
 
-/* Not a button that says "skip" — a button that empties. It fills as the
-   opening plays, so its state is the answer to "how long is this?". */
+/* Built like the up-next card — same glass, same inset edge — so the two
+   prompts read as one family. The gradient lives in the chip, which is the
+   part that moves when you're about to press it. */
 .skip-intro {
 	position: absolute;
 	right: 32px;
 	bottom: 124px;
 	z-index: 3;
-	overflow: hidden;
-	padding: 13px 22px;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 22px 10px 10px;
 	border-radius: 999px;
-	background: rgba(10, 12, 18, 0.6);
-	backdrop-filter: blur(14px);
+	background: rgba(10, 12, 18, 0.72);
+	backdrop-filter: blur(20px);
 	box-shadow:
-		inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-		0 14px 40px rgba(0, 0, 0, 0.45);
+		inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+		0 20px 46px rgba(0, 0, 0, 0.55);
 	color: #fff;
 	transition:
-		transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
-		box-shadow 180ms ease;
+		transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+		box-shadow 200ms ease;
 }
 
 .skip-intro:hover {
 	transform: translateY(-2px);
 	box-shadow:
-		inset 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent),
-		0 18px 46px color-mix(in srgb, var(--accent) 22%, rgba(0, 0, 0, 0.5));
+		inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+		0 26px 56px rgba(0, 0, 0, 0.6);
 }
 
-.skip-intro-fill {
-	position: absolute;
-	inset: 0;
-	transform-origin: left;
+.skip-intro-chip {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
 	background: var(--gradient);
-	opacity: 0.28;
-	transition: transform 260ms linear;
+	box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 40%, transparent);
+	transition:
+		transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+		box-shadow 200ms ease;
 }
 
-.skip-intro:hover .skip-intro-fill {
-	opacity: 0.45;
+.skip-intro:hover .skip-intro-chip {
+	transform: scale(1.06);
+	box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.skip-intro-chip svg {
+	width: 18px;
+	height: 18px;
+	transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.skip-intro:hover .skip-intro-chip svg {
+	transform: translateX(2px);
 }
 
 .skip-intro-label {
-	position: relative;
-	display: flex;
-	align-items: center;
-	gap: 7px;
 	font-family: var(--font-display);
-	font-size: 0.92rem;
+	font-size: 0.95rem;
 	font-weight: 650;
 	letter-spacing: 0.01em;
-}
-
-.skip-intro-label svg {
-	width: 17px;
-	height: 17px;
-	transition: transform 180ms ease;
-}
-
-.skip-intro:hover .skip-intro-label svg {
-	transform: translateX(3px);
 }
 
 /* The next episode, laid out like a card and not a sentence: what you're

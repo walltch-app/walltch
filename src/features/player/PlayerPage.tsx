@@ -912,25 +912,10 @@ function MpvPlayer({
 						transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
 						onClick={() => seekTo(intro.end)}
 					>
-						{/* The button fills as the opening plays: when it's full, the
-						    intro is over and the button leaves on its own. */}
-						<span
-							className="skip-intro-fill"
-							style={{
-								transform: `scaleX(${Math.min(
-									1,
-									Math.max(
-										0,
-										(timePos - intro.start) / (intro.end - intro.start),
-									),
-								)})`,
-							}}
-							aria-hidden
-						/>
-						<span className="skip-intro-label">
-							Skip intro
-							<ChevronsRight aria-hidden />
+						<span className="skip-intro-chip" aria-hidden>
+							<ChevronsRight />
 						</span>
+						<span className="skip-intro-label">Skip intro</span>
 					</motion.button>
 				)}
 			</AnimatePresence>
