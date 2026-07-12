@@ -26,14 +26,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 	const { status } = useAuth();
 	const [profile, setProfile] = useState<Profile | null>(null);
 
-	// Reload when the session flips: signed in the profile is the server one
-	// (with the sharable friend code), signed out it's the local one.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: the session is the trigger, not a value read in the body
+	// The profile is the account, so it only exists while signed in.
+	const signedIn = status?.signedIn ?? false;
 	useEffect(() => {
+		if (!signedIn) {
+			setProfile(null);
+			return;
+		}
 		getProfile()
 			.then(setProfile)
 			.catch(() => {});
-	}, [status?.signedIn]);
+	}, [signedIn]);
 
 	const value = useMemo(() => ({ profile, setProfile }), [profile]);
 	return (
@@ -44,6 +47,22 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 export function useProfile() {
 	return useContext(ProfileContext);
 }
+
+/** The palette avatars are picked from, on setup and later in settings. */
+export const AVATAR_COLORS = [
+	"#d0588a",
+	"#0353f2",
+	"#7c5cff",
+	"#12b886",
+	"#f76707",
+	"#e64980",
+	"#22b8cf",
+	"#fab005",
+	"#ff6b6b",
+	"#20c997",
+	"#845ef7",
+	"#f06595",
+];
 
 /** The monogram shown on an avatar without an image. */
 export function avatarInitial(name: string) {

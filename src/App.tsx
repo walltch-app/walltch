@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import Layout from "./app/Layout";
 import AddonsPage from "./features/addons/AddonsPage";
+import Gate from "./features/auth/Gate";
 import DetailPage from "./features/detail/DetailPage";
 import CatalogPage from "./features/discover/CatalogPage";
 import DiscoverPage from "./features/discover/DiscoverPage";
@@ -28,33 +29,37 @@ function App() {
 		<BrowserRouter>
 			<AuthProvider>
 				<ProfileProvider>
-					<Routes>
-						<Route element={<Layout />}>
-							<Route index element={<DiscoverPage />} />
-							<Route
-								path="movies"
-								element={<TypeBoardPage contentType="movie" title="Movies" />}
-							/>
-							<Route
-								path="series"
-								element={<TypeBoardPage contentType="series" title="Series" />}
-							/>
-							<Route
-								path="anime"
-								element={<TypeBoardPage contentType="anime" title="Anime" />}
-							/>
-							<Route path="continue" element={<ContinuePage />} />
-							<Route path="downloads" element={<DownloadsPage />} />
-							<Route path="profile" element={<ProfilePage />} />
-							<Route path="catalog" element={<CatalogPage />} />
-							<Route path="library" element={<LibraryPage />} />
-							<Route path="addons" element={<AddonsPage />} />
-							<Route path="detail/:type/:id" element={<DetailPage />} />
-							<Route path="settings" element={<SettingsPage />} />
-						</Route>
-						{/* Full-bleed, no sidebar while watching. */}
-						<Route path="player" element={<PlayerPage />} />
-					</Routes>
+					<Gate>
+						<Routes>
+							<Route element={<Layout />}>
+								<Route index element={<DiscoverPage />} />
+								<Route
+									path="movies"
+									element={<TypeBoardPage contentType="movie" title="Movies" />}
+								/>
+								<Route
+									path="series"
+									element={
+										<TypeBoardPage contentType="series" title="Series" />
+									}
+								/>
+								<Route
+									path="anime"
+									element={<TypeBoardPage contentType="anime" title="Anime" />}
+								/>
+								<Route path="continue" element={<ContinuePage />} />
+								<Route path="downloads" element={<DownloadsPage />} />
+								<Route path="profile" element={<ProfilePage />} />
+								<Route path="catalog" element={<CatalogPage />} />
+								<Route path="library" element={<LibraryPage />} />
+								<Route path="addons" element={<AddonsPage />} />
+								<Route path="detail/:type/:id" element={<DetailPage />} />
+								<Route path="settings" element={<SettingsPage />} />
+							</Route>
+							{/* Full-bleed, no sidebar while watching. */}
+							<Route path="player" element={<PlayerPage />} />
+						</Routes>
+					</Gate>
 				</ProfileProvider>
 			</AuthProvider>
 		</BrowserRouter>

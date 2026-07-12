@@ -90,39 +90,23 @@ pub async fn reorder_addons(state: State<'_, AppState>, order: Vec<String>) -> R
     state.reorder_addons(order).await.map_err(|e| e.to_string())
 }
 
-// Once signed in the profile lives on the server (so friends resolve your
-// code); signed out it's the local one. Same for edits.
+// The profile is the account, so both of these need a session — using the
+// app at all means being signed in.
 #[tauri::command]
-pub async fn get_profile(
-    state: State<'_, AppState>,
-    auth: State<'_, Arc<SupabaseAuth>>,
-    social: State<'_, Arc<SupabaseSocial>>,
-) -> Result<Profile, String> {
-    if auth.is_signed_in().await {
-        social.profile().await.map_err(|e| e.to_string())
-    } else {
-        Ok(state.profile().await)
-    }
+pub async fn get_profile(social: State<'_, Arc<SupabaseSocial>>) -> Result<Profile, String> {
+    social.profile().await.map_err(|e| e.to_string())
 }
 
+/// Saving a profile is also what marks the setup screen as done.
 #[tauri::command]
 pub async fn update_profile(
-    state: State<'_, AppState>,
-    auth: State<'_, Arc<SupabaseAuth>>,
     social: State<'_, Arc<SupabaseSocial>>,
     update: ProfileUpdate,
 ) -> Result<Profile, String> {
-    if auth.is_signed_in().await {
-        social
-            .update_profile(&update.display_name, &update.avatar_color)
-            .await
-            .map_err(|e| e.to_string())
-    } else {
-        state
-            .update_profile(update)
-            .await
-            .map_err(|e| e.to_string())
-    }
+    social
+        .update_profile(&update.display_name, &update.avatar_color)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

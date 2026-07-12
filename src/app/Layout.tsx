@@ -1,4 +1,3 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
 	Bookmark,
 	Cat,
@@ -8,11 +7,9 @@ import {
 	Compass,
 	Download,
 	History,
-	Minus,
 	Puzzle,
 	Search,
 	Settings,
-	Square,
 	Tv,
 	User,
 	X,
@@ -26,6 +23,7 @@ import {
 	useSearchParams,
 } from "react-router";
 import FriendRail from "../components/FriendRail";
+import WindowControls from "../components/WindowControls";
 import { avatarInitial, useProfile } from "../lib/profile";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -109,8 +107,6 @@ function Layout() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, []);
 
-	const win = getCurrentWindow();
-
 	return (
 		<div className="shell">
 			{/* Frameless window: the topbar doubles as the titlebar. */}
@@ -133,30 +129,7 @@ function Layout() {
 						<User aria-hidden />
 					)}
 				</NavLink>
-				<div className="win-controls">
-					<button
-						type="button"
-						onClick={() => win.minimize()}
-						aria-label="Minimize"
-					>
-						<Minus aria-hidden />
-					</button>
-					<button
-						type="button"
-						onClick={() => win.toggleMaximize()}
-						aria-label="Maximize"
-					>
-						<Square aria-hidden />
-					</button>
-					<button
-						type="button"
-						className="win-close"
-						onClick={() => win.close()}
-						aria-label="Close"
-					>
-						<X aria-hidden />
-					</button>
-				</div>
+				<WindowControls />
 			</header>
 			<div className="shell-body">
 				<aside className={collapsed ? "sidebar sidebar-min" : "sidebar"}>

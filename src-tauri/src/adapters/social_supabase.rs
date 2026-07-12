@@ -9,7 +9,7 @@ use std::time::Duration;
 use reqwest::{Client, Method, StatusCode};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use walltch_core::social::{Friend, FriendActivity, Profile, SocialError};
+use walltch_core::social::{clean_display_name, Friend, FriendActivity, Profile, SocialError};
 
 use super::supabase::{SupabaseAuth, SUPABASE_KEY, SUPABASE_URL};
 
@@ -97,7 +97,9 @@ impl SupabaseSocial {
         let value = self
             .rest(
                 Method::GET,
-                &format!("profiles?id=eq.{me}&select=id,display_name,avatar_color,friend_code"),
+                &format!(
+                    "profiles?id=eq.{me}&select=id,display_name,avatar_color,friend_code,onboarded"
+                ),
                 None,
                 None,
             )
@@ -109,6 +111,8 @@ impl SupabaseSocial {
         Ok(profile_from_row(&me, row))
     }
 
+    /// Saving a name and avatar is what completes setup, so this also flips
+    /// `onboarded` — after this the app stops showing the setup screen.
     pub async fn update_profile(
         &self,
         display_name: &str,
@@ -120,8 +124,9 @@ impl SupabaseSocial {
                 Method::PATCH,
                 &format!("profiles?id=eq.{me}"),
                 Some(json!({
-                    "display_name": display_name.trim(),
+                    "display_name": clean_display_name(display_name),
                     "avatar_color": avatar_color,
+                    "onboarded": true,
                 })),
                 Some("return=representation"),
             )
@@ -312,6 +317,7 @@ fn profile_from_row(id: &str, row: &Value) -> Profile {
         display_name: row["display_name"].as_str().unwrap_or("You").to_owned(),
         friend_code: row["friend_code"].as_str().unwrap_or_default().to_owned(),
         avatar_color: row["avatar_color"].as_str().unwrap_or("#d0588a").to_owned(),
+        onboarded: row["onboarded"].as_bool().unwrap_or(false),
     }
 }
 

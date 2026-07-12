@@ -10,7 +10,6 @@ use walltch_core::addon::{
 };
 use walltch_core::library::{ContinueWatching, LibraryItem, WatchProgress, Watchlist};
 use walltch_core::ports::{Clock, HttpClient, Storage, StorageError};
-use walltch_core::social::Profile;
 
 use crate::adapters::{FsStorage, ReqwestHttpClient, SystemClock};
 
@@ -18,16 +17,6 @@ const ADDONS_KEY: &str = "addons.json";
 const LIBRARY_KEY: &str = "library.json";
 const WATCHLIST_KEY: &str = "watchlist.json";
 const SETTINGS_KEY: &str = "settings.json";
-const PROFILE_KEY: &str = "profile.json";
-
-/// A fresh random u64 per call, seeded from std's per-process hash keys —
-/// enough entropy to mint a local id and friend code without a rng dep.
-fn random_u64() -> u64 {
-    use std::hash::{BuildHasher, Hasher};
-    let mut hasher = std::collections::hash_map::RandomState::new().build_hasher();
-    hasher.write_u8(0);
-    hasher.finish()
-}
 
 #[derive(Debug, Error)]
 pub enum AppError {
@@ -191,7 +180,6 @@ pub struct AppState {
     library: RwLock<ContinueWatching>,
     watchlist: RwLock<Watchlist>,
     settings: RwLock<Settings>,
-    profile: RwLock<Profile>,
 }
 
 impl AppState {
@@ -228,20 +216,6 @@ impl AppState {
         let watchlist: Watchlist = Self::read_or_default(&*storage, WATCHLIST_KEY).await?;
         let settings: Settings = Self::read_or_default(&*storage, SETTINGS_KEY).await?;
 
-        // Mint a stable local id and friend code on first run; a server will
-        // reissue these later, but the app needs an identity to work with now.
-        let mut profile: Profile = Self::read_or_default(&*storage, PROFILE_KEY).await?;
-        if profile.needs_provisioning() {
-            if profile.id.is_empty() {
-                profile.id = format!("local-{:016x}", random_u64());
-            }
-            if profile.friend_code.is_empty() {
-                profile.friend_code = format!("{:08}", random_u64() % 100_000_000);
-            }
-            let bytes = serde_json::to_vec_pretty(&profile)?;
-            storage.write(PROFILE_KEY, &bytes).await?;
-        }
-
         Ok(Self {
             http,
             storage,
@@ -250,7 +224,6 @@ impl AppState {
             library: RwLock::new(library),
             watchlist: RwLock::new(watchlist),
             settings: RwLock::new(settings),
-            profile: RwLock::new(profile),
         })
     }
 
@@ -269,18 +242,6 @@ impl AppState {
     /// can persist alongside the app state instead of opening their own.
     pub fn storage(&self) -> Arc<dyn Storage> {
         self.storage.clone()
-    }
-
-    pub async fn profile(&self) -> Profile {
-        self.profile.read().await.clone()
-    }
-
-    pub async fn update_profile(&self, update: ProfileUpdate) -> Result<Profile, AppError> {
-        let mut profile = self.profile.write().await;
-        profile.apply_edit(&update.display_name, &update.avatar_color);
-        let bytes = serde_json::to_vec_pretty(&*profile)?;
-        self.storage.write(PROFILE_KEY, &bytes).await?;
-        Ok(profile.clone())
     }
 
     /// Reorder installed addons to match the given transport urls; addons

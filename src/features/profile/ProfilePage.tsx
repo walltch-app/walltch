@@ -11,27 +11,18 @@ import {
 	removeFriend,
 	updateProfile,
 } from "../../lib/api";
-import { useAuth } from "../../lib/auth";
 import type { Friend } from "../../lib/bindings/Friend";
-import { avatarInitial, formatFriendCode, useProfile } from "../../lib/profile";
+import {
+	AVATAR_COLORS,
+	avatarInitial,
+	formatFriendCode,
+	useProfile,
+} from "../../lib/profile";
 import AuthCard from "./AuthCard";
 import "./profile.css";
 
-const AVATAR_COLORS = [
-	"#d0588a",
-	"#0353f2",
-	"#7c5cff",
-	"#12b886",
-	"#f76707",
-	"#e64980",
-	"#22b8cf",
-	"#fab005",
-];
-
 function ProfilePage() {
 	const { profile, setProfile } = useProfile();
-	const { status } = useAuth();
-	const signedIn = status?.signedIn ?? false;
 	const [watching, setWatching] = useState(0);
 	const [saved, setSaved] = useState(0);
 	const [name, setName] = useState("");
@@ -57,27 +48,21 @@ function ProfilePage() {
 	// Friends and incoming requests live on the server, so pull the truth
 	// rather than trusting local edits.
 	const reloadFriends = useCallback(() => {
-		if (!signedIn) {
-			setFriends([]);
-			setRequests([]);
-			return;
-		}
 		listFriends()
 			.then(setFriends)
 			.catch(() => {});
 		listFriendRequests()
 			.then(setRequests)
 			.catch(() => {});
-	}, [signedIn]);
+	}, []);
 
-	// Reload on session change and then poll, so a request you send or one a
-	// friend accepts shows up without reopening the app.
+	// Poll, so a request you send or one a friend accepts shows up without
+	// reopening the app.
 	useEffect(() => {
 		reloadFriends();
-		if (!signedIn) return;
 		const timer = setInterval(reloadFriends, 12000);
 		return () => clearInterval(timer);
-	}, [reloadFriends, signedIn]);
+	}, [reloadFriends]);
 
 	// Seed the form once the profile arrives (and after a save updates it).
 	useEffect(() => {
@@ -222,115 +207,103 @@ function ProfilePage() {
 
 			<section className="profile-friends">
 				<h2 className="profile-section">Friends</h2>
-				{signedIn ? (
-					<>
-						<p className="profile-hint">
-							Share your code so friends can add you.
-						</p>
+				<p className="profile-hint">Share your code so friends can add you.</p>
 
-						<div className="friend-code-box">
-							<span className="friend-code">
-								{formatFriendCode(profile.friendCode)}
-							</span>
-							<button type="button" className="copy-btn" onClick={copyCode}>
-								<Copy aria-hidden />
-								{copied ? "Copied" : "Copy"}
-							</button>
-						</div>
+				<div className="friend-code-box">
+					<span className="friend-code">
+						{formatFriendCode(profile.friendCode)}
+					</span>
+					<button type="button" className="copy-btn" onClick={copyCode}>
+						<Copy aria-hidden />
+						{copied ? "Copied" : "Copy"}
+					</button>
+				</div>
 
-						<form className="add-friend" onSubmit={onAddFriend}>
-							<input
-								className="profile-input"
-								value={codeInput}
-								onChange={(e) => setCodeInput(e.currentTarget.value)}
-								placeholder="Enter a friend code"
-								inputMode="numeric"
-								maxLength={8}
-								spellCheck={false}
-							/>
-							<button type="submit" className="btn">
-								<UserPlus aria-hidden />
-								Add
-							</button>
-						</form>
-						{friendError && <p className="form-error">{friendError}</p>}
-						{friendNote && <p className="auth-note">{friendNote}</p>}
+				<form className="add-friend" onSubmit={onAddFriend}>
+					<input
+						className="profile-input"
+						value={codeInput}
+						onChange={(e) => setCodeInput(e.currentTarget.value)}
+						placeholder="Enter a friend code"
+						inputMode="numeric"
+						maxLength={8}
+						spellCheck={false}
+					/>
+					<button type="submit" className="btn">
+						<UserPlus aria-hidden />
+						Add
+					</button>
+				</form>
+				{friendError && <p className="form-error">{friendError}</p>}
+				{friendNote && <p className="auth-note">{friendNote}</p>}
 
-						{requests.length > 0 && (
-							<div className="friend-requests">
-								<h3 className="friend-subhead">Requests</h3>
-								<ul className="friend-list">
-									{requests.map((req) => (
-										<li key={req.id} className="friend-row">
-											<span
-												className="avatar friend-avatar"
-												style={{ background: req.avatarColor }}
-											>
-												<span>{avatarInitial(req.displayName)}</span>
-											</span>
-											<div className="friend-meta">
-												<span className="friend-name">{req.displayName}</span>
-												<span className="friend-code-sub">
-													wants to be friends
-												</span>
-											</div>
-											<button
-												type="button"
-												className="req-accept"
-												onClick={() => onAcceptRequest(req.id)}
-												aria-label={`Accept ${req.displayName}`}
-											>
-												<Check aria-hidden />
-											</button>
-											<button
-												type="button"
-												className="friend-remove"
-												onClick={() => onRejectRequest(req.id)}
-												aria-label={`Reject ${req.displayName}`}
-											>
-												<X aria-hidden />
-											</button>
-										</li>
-									))}
-								</ul>
-							</div>
-						)}
-
+				{requests.length > 0 && (
+					<div className="friend-requests">
+						<h3 className="friend-subhead">Requests</h3>
 						<ul className="friend-list">
-							{friends.map((friend) => (
-								<li key={friend.id} className="friend-row">
+							{requests.map((req) => (
+								<li key={req.id} className="friend-row">
 									<span
 										className="avatar friend-avatar"
-										style={{ background: friend.avatarColor }}
+										style={{ background: req.avatarColor }}
 									>
-										<span>{avatarInitial(friend.displayName)}</span>
+										<span>{avatarInitial(req.displayName)}</span>
 									</span>
 									<div className="friend-meta">
-										<span className="friend-name">{friend.displayName}</span>
-										<span className="friend-code-sub">
-											{formatFriendCode(friend.friendCode)}
-										</span>
+										<span className="friend-name">{req.displayName}</span>
+										<span className="friend-code-sub">wants to be friends</span>
 									</div>
 									<button
 										type="button"
+										className="req-accept"
+										onClick={() => onAcceptRequest(req.id)}
+										aria-label={`Accept ${req.displayName}`}
+									>
+										<Check aria-hidden />
+									</button>
+									<button
+										type="button"
 										className="friend-remove"
-										onClick={() => onRemoveFriend(friend.id)}
-										aria-label={`Remove ${friend.displayName}`}
+										onClick={() => onRejectRequest(req.id)}
+										aria-label={`Reject ${req.displayName}`}
 									>
 										<X aria-hidden />
 									</button>
 								</li>
 							))}
-							{friends.length === 0 && (
-								<li className="friend-empty">No friends added yet.</li>
-							)}
 						</ul>
-					</>
-				) : (
-					<p className="profile-hint">
-						Sign in to get your friend code and add friends.
-					</p>
+					</div>
 				)}
+
+				<ul className="friend-list">
+					{friends.map((friend) => (
+						<li key={friend.id} className="friend-row">
+							<span
+								className="avatar friend-avatar"
+								style={{ background: friend.avatarColor }}
+							>
+								<span>{avatarInitial(friend.displayName)}</span>
+							</span>
+							<div className="friend-meta">
+								<span className="friend-name">{friend.displayName}</span>
+								<span className="friend-code-sub">
+									{formatFriendCode(friend.friendCode)}
+								</span>
+							</div>
+							<button
+								type="button"
+								className="friend-remove"
+								onClick={() => onRemoveFriend(friend.id)}
+								aria-label={`Remove ${friend.displayName}`}
+							>
+								<X aria-hidden />
+							</button>
+						</li>
+					))}
+					{friends.length === 0 && (
+						<li className="friend-empty">No friends added yet.</li>
+					)}
+				</ul>
 			</section>
 		</div>
 	);
