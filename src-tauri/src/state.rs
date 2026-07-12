@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
@@ -7,7 +8,7 @@ use thiserror::Error;
 use tokio::sync::RwLock;
 use walltch_core::addon::{
     pick, AddonClient, AddonError, ExtraProp, Manifest, MetaDetail, MetaPreview, Quality, Stream,
-    StreamFacts, Subtitle,
+    StreamFacts, StreamSource, Subtitle,
 };
 use walltch_core::library::{ContinueWatching, LibraryItem, WatchProgress, Watchlist};
 use walltch_core::ports::{Clock, HttpClient, Storage, StorageError};
@@ -68,6 +69,20 @@ pub struct AddonStream {
     pub stream: Stream,
 }
 
+/// What makes a stream the same stream: the file it points at.
+fn stream_identity(stream: &AddonStream) -> String {
+    match &stream.stream.source {
+        StreamSource::Torrent {
+            info_hash,
+            file_idx,
+            ..
+        } => format!("{info_hash}:{}", file_idx.unwrap_or_default()),
+        StreamSource::Url { url } => url.clone(),
+        StreamSource::YouTube { yt_id } => format!("yt:{yt_id}"),
+        StreamSource::External { external_url } => external_url.clone(),
+    }
+}
+
 /// A stream with what we managed to read off its release name.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
 #[ts(export)]
@@ -76,6 +91,9 @@ pub struct RankedStream {
     #[serde(flatten)]
     pub stream: AddonStream,
     pub facts: StreamFacts,
+    /// Whether the player you're actually using can decode this. mpv can
+    /// decode anything, so this only ever goes false on the webview.
+    pub playable: bool,
 }
 
 /// One quality's worth of streams: the one we'd press play on, and the rest
@@ -559,13 +577,25 @@ impl AppState {
             preferred: settings.quality(),
         };
 
+        let mut seen: HashSet<String> = HashSet::new();
         let mut ranked: Vec<(f32, RankedStream)> = self
             .get_streams(content_type, id)
             .await?
             .into_iter()
+            // Addons repeat the same torrent under different trackers; one
+            // row per file is enough.
+            .filter(|stream| seen.insert(stream_identity(stream)))
             .map(|stream| {
                 let facts = pick::facts(&stream.stream);
-                (pick::score(&facts, &ctx), RankedStream { stream, facts })
+                let playable = !ctx.webview_only || facts.web_playable;
+                (
+                    pick::score(&facts, &ctx),
+                    RankedStream {
+                        stream,
+                        facts,
+                        playable,
+                    },
+                )
             })
             .collect();
         ranked.sort_by(|(a, _), (b, _)| b.total_cmp(a));

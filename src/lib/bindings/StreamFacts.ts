@@ -16,4 +16,16 @@ webPlayable: boolean, seeders: number | null, sizeBytes: bigint | null,
 /**
  * What the release calls itself, minus the addon's own decoration.
  */
-release: string | null, };
+release: string | null, 
+/**
+ * Where the video came from: WEB-DL, BluRay, HDTV…
+ */
+source: string | null, 
+/**
+ * H.264, H.265, AV1, XviD.
+ */
+codec: string | null, 
+/**
+ * Atmos, DTS-HD, DDP 5.1 — only the ones worth mentioning.
+ */
+audio: string | null, };

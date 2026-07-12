@@ -26,29 +26,41 @@ function formatSize(bytes: bigint | null): string | null {
 		: `${Math.round(Number(bytes) / 1e6)} MB`;
 }
 
-/** The line under a release: swarm, size, and who served it. */
-function Facts({ stream }: { stream: RankedStream }) {
-	const { seeders, sizeBytes, hdr, webPlayable } = stream.facts;
+/** What the release is, in words: "WEB-DL · H.265 · Atmos". The raw file name
+ * stays available on hover for anyone who wants it. */
+function releaseLine(stream: RankedStream): string {
+	const { source, codec, audio, hdr } = stream.facts;
+	const parts = [source, hdr ? "HDR" : null, codec, audio].filter(Boolean);
+	if (parts.length > 0) return parts.join(" · ");
+	return stream.facts.release ?? stream.name ?? "Stream";
+}
+
+/** Swarm, size and who served it — the numbers that decide if it plays well. */
+function Facts({
+	stream,
+	className,
+}: {
+	stream: RankedStream;
+	className?: string;
+}) {
+	const { seeders, sizeBytes } = stream.facts;
 	const size = formatSize(sizeBytes);
 	return (
-		<div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+		<div
+			className={`flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted ${className ?? ""}`}
+		>
 			{seeders !== null && (
-				<span className="inline-flex items-center gap-1">
+				<span className="inline-flex items-center gap-1 tabular-nums">
 					<Users className="size-3.5" aria-hidden />
 					{seeders}
 				</span>
 			)}
-			{size && <span>{size}</span>}
-			<span>{stream.addonName}</span>
-			{hdr && (
-				<span className="rounded-md border border-line px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide">
-					HDR
-				</span>
-			)}
-			{!webPlayable && (
+			{size && <span className="tabular-nums">{size}</span>}
+			<span className="opacity-70">{stream.addonName}</span>
+			{!stream.playable && (
 				<span
-					className="inline-flex items-center gap-1 text-amber-400/80"
-					title="This codec doesn't play in the built-in player yet"
+					className="inline-flex items-center gap-1 text-amber-400/90"
+					title="Your player is set to the basic web player, which can't decode this file"
 				>
 					<TriangleAlert className="size-3.5" aria-hidden />
 					May not play
@@ -69,42 +81,52 @@ function TierCard({
 
 	return (
 		<li
-			className={`group overflow-hidden rounded-2xl border bg-surface/60 transition-colors ${
+			className={`overflow-hidden rounded-2xl border transition-colors ${
 				tier.preferred
-					? "border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_7%,var(--surface))]"
-					: "border-line hover:border-white/15"
+					? "border-[color-mix(in_srgb,var(--accent)_38%,transparent)] bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface))]"
+					: "border-line bg-surface/50 hover:border-white/12"
 			}`}
 		>
-			<button
-				type="button"
-				className="flex w-full items-center gap-4 p-3.5 text-left"
-				onClick={() => onPlay(tier.best)}
-			>
-				<span
-					className={`grid size-14 shrink-0 place-items-center rounded-xl font-display text-sm font-bold tracking-tight ${
-						tier.preferred
-							? "bg-(image:--gradient) text-white"
-							: "bg-white/6 text-text/90"
-					}`}
+			<div className="group flex items-stretch">
+				<button
+					type="button"
+					className="flex flex-1 items-center gap-4 p-3.5 text-left"
+					onClick={() => onPlay(tier.best)}
+					title={tier.best.facts.release ?? undefined}
 				>
-					{tier.label}
-				</span>
-				<div className="min-w-0 flex-1">
-					<p className="truncate text-[0.95rem] leading-snug font-medium text-text">
-						{tier.best.facts.release ?? tier.best.name ?? "Stream"}
-					</p>
-					<Facts stream={tier.best} />
-				</div>
-				<span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/8 text-text transition-transform group-hover:scale-105 group-hover:bg-(image:--gradient)">
-					<Play className="size-4 translate-x-px fill-current" aria-hidden />
-				</span>
-			</button>
+					<span
+						className={`grid h-14 w-16 shrink-0 place-items-center rounded-xl font-display text-sm font-bold ${
+							tier.preferred
+								? "bg-(image:--gradient) text-white"
+								: "bg-white/6 text-text/80"
+						}`}
+					>
+						{tier.label}
+					</span>
+					<div className="min-w-0 flex-1">
+						<p className="truncate font-display text-[1.02rem] font-semibold text-text">
+							{releaseLine(tier.best)}
+						</p>
+						<Facts stream={tier.best} className="mt-1.5" />
+					</div>
+				</button>
+				<button
+					type="button"
+					className="grid w-16 shrink-0 place-items-center text-muted transition-colors hover:text-text"
+					onClick={() => onPlay(tier.best)}
+					aria-label={`Play ${tier.label}`}
+				>
+					<span className="grid size-10 place-items-center rounded-full bg-white/7 transition-all group-hover:scale-105 group-hover:bg-(image:--gradient) group-hover:text-white">
+						<Play className="size-4 translate-x-px fill-current" aria-hidden />
+					</span>
+				</button>
+			</div>
 
 			{tier.alternatives.length > 0 && (
-				<div className="border-t border-line/60">
+				<>
 					<button
 						type="button"
-						className="flex w-full items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-muted transition-colors hover:text-text"
+						className="flex w-full items-center gap-1.5 border-t border-line/70 px-4 py-2.5 text-xs font-medium text-muted transition-colors hover:bg-white/3 hover:text-text"
 						onClick={() => setOpen((current) => !current)}
 					>
 						<ChevronDown
@@ -116,19 +138,23 @@ function TierCard({
 							: `${tier.alternatives.length} more in ${tier.label}`}
 					</button>
 					{open && (
-						<ul className="flex flex-col gap-0.5 px-2 pb-2">
+						<ul className="max-h-80 divide-y divide-line/50 overflow-y-auto border-t border-line/70 bg-black/20">
 							{tier.alternatives.map((stream) => (
 								<li key={streamKey(stream)}>
 									<button
 										type="button"
-										className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+										className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/4"
 										onClick={() => onPlay(stream)}
+										title={stream.facts.release ?? undefined}
 									>
 										<div className="min-w-0 flex-1">
-											<p className="truncate text-sm leading-snug text-text/85">
-												{stream.facts.release ?? stream.name ?? "Stream"}
+											<p className="truncate text-sm font-medium text-text/90">
+												{releaseLine(stream)}
 											</p>
-											<Facts stream={stream} />
+											<p className="truncate text-[0.7rem] text-muted/60">
+												{stream.facts.release ?? stream.name}
+											</p>
+											<Facts stream={stream} className="mt-1" />
 										</div>
 										<Play
 											className="size-3.5 shrink-0 fill-current text-muted"
@@ -139,7 +165,7 @@ function TierCard({
 							))}
 						</ul>
 					)}
-				</div>
+				</>
 			)}
 		</li>
 	);
@@ -202,8 +228,8 @@ function StreamsSection({
 				</ul>
 			)}
 			{tiers && tiers.length > 0 && (
-				<ul className="flex flex-col gap-3">
-					{/* The quality you'd get from a single press of play leads. */}
+				<ul className="flex flex-col gap-2.5">
+					{/* The quality a single press of play opens leads the list. */}
 					{[...tiers]
 						.sort((a, b) => Number(b.preferred) - Number(a.preferred))
 						.map((tier) => (

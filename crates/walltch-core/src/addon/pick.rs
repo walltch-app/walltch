@@ -58,6 +58,12 @@ pub struct StreamFacts {
     pub size_bytes: Option<u64>,
     /// What the release calls itself, minus the addon's own decoration.
     pub release: Option<String>,
+    /// Where the video came from: WEB-DL, BluRay, HDTV…
+    pub source: Option<String>,
+    /// H.264, H.265, AV1, XviD.
+    pub codec: Option<String>,
+    /// Atmos, DTS-HD, DDP 5.1 — only the ones worth mentioning.
+    pub audio: Option<String>,
 }
 
 /// Everything the pickers work with: a stream and what we read off it.
@@ -112,7 +118,59 @@ pub fn facts(stream: &Stream) -> StreamFacts {
             .video_size
             .or_else(|| read_size(stream.label().unwrap_or_default())),
         release: read_release(stream.label()),
+        source: first_match(
+            &text,
+            &[
+                ("remux", "Remux"),
+                ("bluray", "BluRay"),
+                ("blu-ray", "BluRay"),
+                ("bdrip", "BDRip"),
+                ("brrip", "BRRip"),
+                ("web-dl", "WEB-DL"),
+                ("webdl", "WEB-DL"),
+                ("webrip", "WEBRip"),
+                ("web-dlrip", "WEBRip"),
+                ("hdtv", "HDTV"),
+                ("dvdrip", "DVDRip"),
+                ("cam", "CAM"),
+            ],
+        ),
+        codec: first_match(
+            &text,
+            &[
+                ("av1", "AV1"),
+                ("x265", "H.265"),
+                ("h265", "H.265"),
+                ("h.265", "H.265"),
+                ("hevc", "H.265"),
+                ("x264", "H.264"),
+                ("h264", "H.264"),
+                ("h.264", "H.264"),
+                ("avc", "H.264"),
+                ("xvid", "XviD"),
+            ],
+        ),
+        audio: first_match(
+            &text,
+            &[
+                ("atmos", "Atmos"),
+                ("truehd", "TrueHD"),
+                ("dts-hd", "DTS-HD"),
+                ("dts", "DTS"),
+                ("ddp", "DD+"),
+                ("eac3", "DD+"),
+                ("ac3", "DD"),
+            ],
+        ),
     }
+}
+
+/// First needle that appears, mapped to how we'd write it.
+fn first_match(text: &str, table: &[(&str, &str)]) -> Option<String> {
+    table
+        .iter()
+        .find(|(needle, _)| text.contains(needle))
+        .map(|(_, label)| (*label).to_owned())
 }
 
 /// Higher is better. Swarm size leads — it's what decides whether the thing
@@ -270,6 +328,8 @@ mod tests {
         assert!(!facts.web_playable);
         assert_eq!(facts.seeders, Some(1481));
         assert_eq!(facts.size_bytes, Some(21_740_000_000));
+        assert_eq!(facts.source.as_deref(), Some("WEB-DL"));
+        assert_eq!(facts.codec.as_deref(), Some("H.265"));
         assert_eq!(
             facts.release.as_deref(),
             Some("Obsession.2026.2160p.WEB-DL.DV.HDR10+.H265.MKV")

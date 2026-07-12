@@ -6,7 +6,12 @@ import type { Subtitle } from "./Subtitle";
 /**
  * A stream with what we managed to read off its release name.
  */
-export type RankedStream = { facts: StreamFacts, addonName: string, 
+export type RankedStream = { facts: StreamFacts, 
+/**
+ * Whether the player you're actually using can decode this. mpv can
+ * decode anything, so this only ever goes false on the webview.
+ */
+playable: boolean, addonName: string, 
 /**
  * Short label, usually the addon or quality name.
  */
