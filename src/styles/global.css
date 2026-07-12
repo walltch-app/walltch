@@ -47,27 +47,32 @@
 	--font-body: var(--font-body);
 }
 
-* {
-	margin: 0;
-	box-sizing: border-box;
-}
+/* Our own reset, in the base layer so a utility class always outranks it.
+   Unlayered CSS beats every layer, so leaving `button { padding: 0 }` out
+   here would quietly delete the padding, border and background off any
+   component styled with Tailwind. */
+@layer base {
+	* {
+		margin: 0;
+		box-sizing: border-box;
+	}
 
-/* Buttons and lists start bare. Every one in the app draws itself, and a
-   component styled with utilities shouldn't have to undo the browser's grey
-   chrome or its bullet points. */
-button {
-	padding: 0;
-	border: 0;
-	background: none;
-	color: inherit;
-	font: inherit;
-	cursor: pointer;
-}
+	/* Buttons and lists start bare; everything in the app draws itself, and
+	   nothing should have to undo the browser's grey chrome or its bullets. */
+	button {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		cursor: pointer;
+	}
 
-ul,
-ol {
-	padding: 0;
-	list-style: none;
+	ul,
+	ol {
+		padding: 0;
+		list-style: none;
+	}
 }
 
 html,

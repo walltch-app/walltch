@@ -221,20 +221,20 @@ function StreamsSection({
 
 			{tiers && tier && (
 				<div className="flex flex-col gap-4">
-					<div className="flex flex-wrap gap-1.5 rounded-full border border-line bg-surface/60 p-1 self-start">
+					<div className="flex flex-wrap gap-1 self-start rounded-full border border-line bg-surface/60 p-1">
 						{tiers.map((option) => (
 							<button
 								key={option.quality}
 								type="button"
 								onClick={() => setActive(option.quality)}
-								className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+								className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
 									option.quality === tier.quality
 										? "bg-(image:--gradient) text-white"
 										: "text-muted hover:text-text"
 								}`}
 							>
 								{option.label}
-								<span className="ml-1.5 text-xs font-normal opacity-70">
+								<span className="ml-2 text-xs font-normal opacity-65">
 									{option.alternatives.length + 1}
 								</span>
 							</button>
@@ -249,10 +249,10 @@ function StreamsSection({
 
 					{tier.alternatives.length > 0 && (
 						<div>
-							<p className="mb-1 px-3 text-xs font-semibold tracking-wide text-muted uppercase">
+							<p className="mb-2 px-1 text-xs font-semibold tracking-wide text-muted uppercase">
 								Other {tier.label} releases
 							</p>
-							<ul className="max-h-96 list-none overflow-y-auto pr-1">
+							<ul className="max-h-96 overflow-y-auto rounded-2xl border border-line bg-surface/40 p-1.5">
 								{tier.alternatives.map((stream) => (
 									<OptionRow
 										key={streamKey(stream)}
