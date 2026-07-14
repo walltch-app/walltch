@@ -97,7 +97,7 @@ function DetailPage() {
 		const videoId = video?.id ?? meta.id;
 		setStarting(true);
 		try {
-			const tiers = await getStreamTiers(type, videoId);
+			const { tiers } = await getStreamTiers(type, videoId);
 			const tier = tiers.find((t) => t.preferred) ?? tiers[0];
 			if (!tier) {
 				setStreamError("None of your addons offered a stream for this.");

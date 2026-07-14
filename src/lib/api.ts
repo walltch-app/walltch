@@ -21,7 +21,7 @@ import type { ResolvedStream } from "./bindings/ResolvedStream";
 import type { Settings } from "./bindings/Settings";
 import type { SkipSegment } from "./bindings/SkipSegment";
 import type { StreamSource } from "./bindings/StreamSource";
-import type { StreamTier } from "./bindings/StreamTier";
+import type { StreamsView } from "./bindings/StreamsView";
 import type { TorrentProgress } from "./bindings/TorrentProgress";
 import type { WatchlistToggle } from "./bindings/WatchlistToggle";
 import type { WatchProgress } from "./bindings/WatchProgress";
@@ -82,7 +82,7 @@ export function torrentProgress(
 export function getStreamTiers(
 	contentType: string,
 	id: string,
-): Promise<StreamTier[]> {
+): Promise<StreamsView> {
 	return invoke("get_stream_tiers", { contentType, id });
 }
 

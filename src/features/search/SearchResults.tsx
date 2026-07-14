@@ -1,5 +1,5 @@
-import { SearchX } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { SearchX, TriangleAlert } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCatalog, listCatalogs } from "../../lib/api";
 import type { CatalogDescriptor } from "../../lib/bindings/CatalogDescriptor";
 import type { MetaPreview } from "../../lib/bindings/MetaPreview";
@@ -51,40 +51,49 @@ function ResultRowSection({
  * extra is asked concurrently, results deduped and grouped by type. */
 function SearchResults({ query }: { query: string }) {
 	const [rows, setRows] = useState<ResultRow[] | null>(null);
+	const [failures, setFailures] = useState<string[]>([]);
 	const [searching, setSearching] = useState(false);
-	const catalogsRef = useRef<CatalogDescriptor[] | null>(null);
+	const searchRef = useRef(0);
 
-	useEffect(() => {
-		let stale = false;
+	const run = useCallback(() => {
+		const generation = ++searchRef.current;
+		const stale = () => generation !== searchRef.current;
 		setSearching(true);
+		setFailures([]);
 		(async () => {
-			if (!catalogsRef.current) {
-				catalogsRef.current = searchable(await listCatalogs());
-			}
+			// Re-read the catalogs each time: installing an addon between
+			// searches used to leave the old list in place until a reload.
+			const catalogs = searchable(await listCatalogs());
+			const failed: string[] = [];
 			const results = await Promise.all(
-				catalogsRef.current.map(async (catalog) => {
+				catalogs.map(async (catalog) => {
 					const metas = await getCatalog(
 						catalog.transportUrl,
 						catalog.type,
 						catalog.id,
 						[["search", query]],
-					).catch(() => []);
+					).catch(() => {
+						// An addon that's down looked exactly like one with no
+						// results, which is how a search can quietly lose a whole
+						// content type when a second addon is installed.
+						failed.push(catalog.addonName);
+						return [];
+					});
 					return { catalog, metas };
 				}),
 			);
-			if (stale) return;
+			if (stale()) return;
 			setRows(results.filter((row) => row.metas.length > 0));
+			setFailures([...new Set(failed)]);
 			setSearching(false);
 		})().catch(() => {
-			if (!stale) {
-				setRows([]);
-				setSearching(false);
-			}
+			if (stale()) return;
+			setRows([]);
+			setSearching(false);
 		});
-		return () => {
-			stale = true;
-		};
 	}, [query]);
+
+	useEffect(run, [run]);
 
 	// One row per content type reads better than one per catalog: several
 	// addons often answer with overlapping lists.
@@ -108,6 +117,19 @@ function SearchResults({ query }: { query: string }) {
 	return (
 		<>
 			{searching && <p className="row-note search-note">Searching…</p>}
+
+			{!searching && failures.length > 0 && (
+				<div className="search-failures">
+					<TriangleAlert aria-hidden />
+					<p>
+						{failures.join(", ")} didn't answer, so results from{" "}
+						{failures.length === 1 ? "it" : "them"} are missing.
+					</p>
+					<button type="button" onClick={run}>
+						Retry
+					</button>
+				</div>
+			)}
 
 			{!searching && grouped && grouped.length === 0 && (
 				<div className="empty">

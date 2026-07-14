@@ -1453,10 +1453,10 @@ function PlayerPage() {
 			if (!context || triedRef.current.size > MAX_STREAM_ATTEMPTS) {
 				throw new Error("nothing left to try");
 			}
-			const tiers = await getStreamTiers(context.contentType, context.videoId);
+			const view = await getStreamTiers(context.contentType, context.videoId);
 			// Same order the detail page shows: the quality you asked for first,
 			// best release of each tier ahead of its alternatives.
-			const ordered = [...tiers]
+			const ordered = [...view.tiers]
 				.sort((a, b) => Number(b.preferred) - Number(a.preferred))
 				.flatMap((tier) => [tier.best, ...tier.alternatives]);
 			const next = ordered.find(

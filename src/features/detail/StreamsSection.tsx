@@ -1,12 +1,12 @@
 import { Check, HardDrive, Play, TriangleAlert, Users } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatedBackground } from "@/components/ui/animated-background";
 import { getStreamTiers } from "@/lib/api";
 import type { Quality } from "@/lib/bindings/Quality";
 import type { RankedStream } from "@/lib/bindings/RankedStream";
-import type { StreamTier } from "@/lib/bindings/StreamTier";
+import type { StreamsView } from "@/lib/bindings/StreamsView";
 import type { PlayContext, PlayerLocationState } from "../player/PlayerPage";
 
 const SKELETON_KEYS = ["a", "b", "c"];
@@ -162,18 +162,21 @@ function StreamsSection({
 	context?: PlayContext;
 }) {
 	const navigate = useNavigate();
-	const [tiers, setTiers] = useState<StreamTier[] | null>(null);
+	const [view, setView] = useState<StreamsView | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [active, setActive] = useState<Quality | null>(null);
+	const tiers = view?.tiers ?? null;
 
-	useEffect(() => {
-		setTiers(null);
+	const load = useCallback(() => {
+		setView(null);
 		setError(null);
 		setActive(null);
 		getStreamTiers(contentType, videoId)
-			.then(setTiers)
+			.then(setView)
 			.catch((e) => setError(String(e)));
 	}, [contentType, videoId]);
+
+	useEffect(load, [load]);
 
 	// Open on the quality settings ask for; the user can move off it.
 	const tier = useMemo(() => {
@@ -199,6 +202,29 @@ function StreamsSection({
 			</header>
 
 			{error && <p className="row-note">{error}</p>}
+
+			{/* An addon that didn't answer is a different problem from a title
+			    nobody has, and the two used to look identical. */}
+			{view && view.failures.length > 0 && (
+				<div className="mb-3 flex items-center gap-3 rounded-xl border border-amber-400/25 bg-amber-400/8 px-4 py-3">
+					<TriangleAlert
+						className="size-4 shrink-0 text-amber-400"
+						aria-hidden
+					/>
+					<p className="min-w-0 flex-1 text-sm text-text/85">
+						{view.failures.map((failure) => failure.addonName).join(", ")}{" "}
+						didn't answer, so anything it serves is missing from this list.
+					</p>
+					<button
+						type="button"
+						className="shrink-0 text-sm font-semibold text-amber-400 hover:text-amber-300"
+						onClick={load}
+					>
+						Retry
+					</button>
+				</div>
+			)}
+
 			{tiers?.length === 0 && (
 				<p className="row-note">
 					None of your addons offered a stream for this. A stream addon like

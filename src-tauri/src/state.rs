@@ -111,6 +111,25 @@ pub struct StreamTier {
     pub alternatives: Vec<RankedStream>,
 }
 
+/// An addon that was asked for something and didn't deliver. Dropping these
+/// silently is why "no streams" and "your addon is down" used to look the same.
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct AddonFailure {
+    pub addon_name: String,
+    pub message: String,
+}
+
+/// Streams, grouped into qualities, plus whoever failed to answer.
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct StreamsView {
+    pub tiers: Vec<StreamTier>,
+    pub failures: Vec<AddonFailure>,
+}
+
 /// A subtitle annotated with which addon offered it.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
 #[ts(export)]
@@ -528,14 +547,15 @@ impl AppState {
         Ok(self.storage.write(LIBRARY_KEY, &bytes).await?)
     }
 
-    /// Query every addon that serves streams for this type/id concurrently
-    /// and flatten the results. Addons that error are skipped — one dead
-    /// addon shouldn't hide streams from the others.
-    pub async fn get_streams(
+    /// Query every addon that serves streams for this type/id concurrently.
+    /// One dead addon shouldn't hide streams from the others, so a failure
+    /// drops its results — but it comes back with them, because "nobody has
+    /// this" and "your addon is down" are different problems.
+    pub async fn get_streams_with_failures(
         &self,
         content_type: &str,
         id: &str,
-    ) -> Result<Vec<AddonStream>, AppError> {
+    ) -> (Vec<AddonStream>, Vec<AddonFailure>) {
         let candidates: Vec<(String, String)> = self
             .addons
             .read()
@@ -548,22 +568,38 @@ impl AppState {
         let queries = candidates.into_iter().map(|(addon_name, transport_url)| {
             let client = self.client(&transport_url);
             async move {
-                let streams = client.streams(content_type, id).await.ok()?;
-                Some((addon_name, streams))
+                match client.streams(content_type, id).await {
+                    Ok(streams) => Ok((addon_name, streams)),
+                    Err(error) => Err(AddonFailure {
+                        addon_name,
+                        message: error.to_string(),
+                    }),
+                }
             }
         });
 
-        Ok(futures::future::join_all(queries)
-            .await
-            .into_iter()
-            .flatten()
-            .flat_map(|(addon_name, streams)| {
-                streams.into_iter().map(move |stream| AddonStream {
-                    addon_name: addon_name.clone(),
-                    stream,
-                })
-            })
-            .collect())
+        let mut streams = Vec::new();
+        let mut failures = Vec::new();
+        for result in futures::future::join_all(queries).await {
+            match result {
+                Ok((addon_name, found)) => {
+                    streams.extend(found.into_iter().map(|stream| AddonStream {
+                        addon_name: addon_name.clone(),
+                        stream,
+                    }))
+                }
+                Err(failure) => failures.push(failure),
+            }
+        }
+        (streams, failures)
+    }
+
+    pub async fn get_streams(
+        &self,
+        content_type: &str,
+        id: &str,
+    ) -> Result<Vec<AddonStream>, AppError> {
+        Ok(self.get_streams_with_failures(content_type, id).await.0)
     }
 
     /// The same streams, cut down to a choice a person can make: one pick per
@@ -572,7 +608,7 @@ impl AppState {
         &self,
         content_type: &str,
         id: &str,
-    ) -> Result<Vec<StreamTier>, AppError> {
+    ) -> Result<StreamsView, AppError> {
         let settings = self.settings().await;
         // mpv decodes anything; the webview is fussy, and scoring has to know.
         let ctx = pick::PickContext {
@@ -580,10 +616,9 @@ impl AppState {
             preferred: settings.quality(),
         };
 
+        let (streams, failures) = self.get_streams_with_failures(content_type, id).await;
         let mut seen: HashSet<String> = HashSet::new();
-        let mut ranked: Vec<(f32, RankedStream)> = self
-            .get_streams(content_type, id)
-            .await?
+        let mut ranked: Vec<(f32, RankedStream)> = streams
             .into_iter()
             // Addons repeat the same torrent under different trackers; one
             // row per file is enough.
@@ -623,7 +658,7 @@ impl AppState {
         for tier in &mut tiers {
             tier.preferred = Some(tier.quality) == opening;
         }
-        Ok(tiers)
+        Ok(StreamsView { tiers, failures })
     }
 }
 

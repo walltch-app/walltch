@@ -28,6 +28,25 @@ impl Default for ReqwestHttpClient {
 #[async_trait]
 impl HttpClient for ReqwestHttpClient {
     async fn get(&self, url: &str) -> Result<HttpResponse, HttpError> {
+        // Community addons run on free hosting that drops the odd connection.
+        // One retry turns most of those from "this addon has nothing" into a
+        // list of streams.
+        let mut last: HttpError = HttpError("request never ran".to_owned());
+        for attempt in 0..2 {
+            if attempt > 0 {
+                tokio::time::sleep(Duration::from_millis(400)).await;
+            }
+            match self.try_get(url).await {
+                Ok(response) => return Ok(response),
+                Err(error) => last = error,
+            }
+        }
+        Err(last)
+    }
+}
+
+impl ReqwestHttpClient {
+    async fn try_get(&self, url: &str) -> Result<HttpResponse, HttpError> {
         let response = self
             .client
             .get(url)
